@@ -199,6 +199,7 @@ export type Database = {
           duration_seconds: number | null
           exercise_id: string
           id: string
+          item_index: number | null
           sequence: number
           speaker_label: string | null
           transcript: string
@@ -208,6 +209,7 @@ export type Database = {
           duration_seconds?: number | null
           exercise_id: string
           id?: string
+          item_index?: number | null
           sequence?: number
           speaker_label?: string | null
           transcript: string
@@ -217,6 +219,7 @@ export type Database = {
           duration_seconds?: number | null
           exercise_id?: string
           id?: string
+          item_index?: number | null
           sequence?: number
           speaker_label?: string | null
           transcript?: string

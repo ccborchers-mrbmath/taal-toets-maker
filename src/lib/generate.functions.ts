@@ -523,15 +523,15 @@ async function persistPaper(
     const exerciseId = exRows[0].id;
 
     // ---------- transcripts ----------
-    const turns: { speaker: string; text: string }[] = [];
-    if (ex.items) ex.items.forEach((it) => turns.push(...(it.turns ?? [])));
-    if (ex.pair_items) ex.pair_items.forEach((p) => turns.push(...(p.turns ?? [])));
-    if (ex.speaker_items) ex.speaker_items.forEach((it) => turns.push(...(it.turns ?? [])));
-    for (const ex5 of [ex]) {
-      // mcq_long stores turns at exercise level
-      const longTurns = (ex5 as unknown as { turns?: { speaker: string; text: string }[] }).turns;
-      if (Array.isArray(longTurns)) turns.push(...longTurns);
-    }
+    // `item_index` groups turns by their parent item so the audio generator
+    // can replay the exemplar Cambridge pause pattern (per-item rubric +
+    // reading pause + recording + 5s + repeat + 5s, etc.).
+    const turns: { speaker: string; text: string; item_index: number }[] = [];
+    if (ex.items) ex.items.forEach((it, idx) => (it.turns ?? []).forEach((t) => turns.push({ ...t, item_index: idx })));
+    if (ex.pair_items) ex.pair_items.forEach((p, idx) => (p.turns ?? []).forEach((t) => turns.push({ ...t, item_index: idx })));
+    if (ex.speaker_items) ex.speaker_items.forEach((it, idx) => (it.turns ?? []).forEach((t) => turns.push({ ...t, item_index: idx })));
+    const longTurns = (ex as unknown as { turns?: { speaker: string; text: string }[] }).turns;
+    if (Array.isArray(longTurns)) longTurns.forEach((t) => turns.push({ ...t, item_index: 0 }));
     if (turns.length) {
       await supabase.from("listening_scripts").insert(
         turns.map((t, i) => ({
@@ -539,6 +539,7 @@ async function persistPaper(
           sequence: i,
           speaker_label: t.speaker,
           transcript: t.text,
+          item_index: t.item_index,
         })),
       );
     }
