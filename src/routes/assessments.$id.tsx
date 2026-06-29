@@ -167,13 +167,9 @@ function EditorContent() {
               <Button variant="outline" size="sm" onClick={() => setShowTranscript((s) => !s)}>
                 {showTranscript ? (locale === "af" ? "Versteek transkripsie" : "Hide transcript") : t("editor.transcript")}
               </Button>
-              <div id="export-bar" className="ml-auto flex flex-wrap items-center gap-2">
-                <PdfButton id={id} kind="paper" label={locale === "af" ? "Vraestel PDF" : "Question paper PDF"} cached={!!assessment.paper_pdf_path} onChange={() => query.refetch()} />
-                <PdfButton id={id} kind="mark_scheme" label={locale === "af" ? "Memorandum PDF" : "Mark scheme PDF"} cached={!!assessment.mark_scheme_pdf_path} onChange={() => query.refetch()} />
-                <PdfButton id={id} kind="transcript" label={locale === "af" ? "Transkripsie PDF" : "Transcript PDF"} cached={!!assessment.transcript_pdf_path} onChange={() => query.refetch()} />
-              </div>
             </>
           )}
+
         </div>
 
         {isFailed && assessment.generation_error && (
