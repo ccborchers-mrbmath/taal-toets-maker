@@ -1,24 +1,65 @@
 // Server function: generate the stitched listening MP3 for one exercise.
 //
-// Voice resolution:
-//   1. Each speaker label in the script is mapped via `exercises.voice_map`
-//      to a `voice_cast.id` (the user's library) when available.
-//   2. The narrator voice is whichever cast voice is flagged
-//      `suitability.narrator = true`; falls back to the first active voice.
-//   3. Per-voice ElevenLabs `voice_settings` overrides are applied when set.
+// Pause patterns mirror the Cambridge 0548/02 SPECIMEN TRANSCRIPT exactly:
 //
-// Backwards compat: if a `voice_map` entry isn't a UUID we treat it as a
-// raw ElevenLabs voice_id.
+//   Ex1 (8 short clips):
+//     "Oefening 1." + instructions
+//     for each item:
+//       R1: "Vraag N. <stem>"           PAUSE 3s
+//       recording                        PAUSE 5s
+//       recording (repeat)               PAUSE 5s
+//     "Einde van Oefening 1. Gaan nou na Oefening 2."   PAUSE 5s
+//
+//   Ex2 (5 short dialogues, 2 Qs each):
+//     "Oefening 2." + instructions       PAUSE 5s
+//     for each pair:
+//       "Jy gaan ... Kyk nou na vraag X en Y."   PAUSE 15s
+//       recording                        PAUSE 5s
+//       recording (repeat)               PAUSE 5s
+//     ending                             PAUSE 5s
+//
+//   Ex3 (long monologue, 8 Qs):
+//     "Oefening 3." + instructions + "Kyk nou vrae 19-26."   PAUSE 40s
+//     recording                          PAUSE 10s
+//     "Jy sal die praatjie nou nog ŉ keer hoor."
+//     recording (repeat)                 PAUSE 10s
+//     ending                             PAUSE 5s
+//
+//   Ex4 (6 short speakers, matching):
+//     "Oefening 4." + instructions + "Lees nou stellings A-H."   PAUSE 30s
+//     for each speaker:
+//       "Spreker N"
+//       recording                        PAUSE 10s
+//     "Nou sal jy weer na die ses tieners luister."
+//     for each speaker:
+//       "Spreker N"
+//       recording                        PAUSE 10s
+//     ending                             PAUSE 5s
+//
+//   Ex5 (long interview, 8 Qs):
+//     "Oefening 5." + instructions + "Kyk nou na vrae 33-40."   PAUSE 45s
+//     recording
+//     "Jy sal die onderhoud nou nog een keer hoor."
+//     recording (repeat)                 PAUSE 10s
+//     "Hierdie is die einde van oefening 5. Jy het nou 6 minute ..." PAUSE 5min
+//     "Daar is nou 1 minuut oor."                                    PAUSE 1min
+//     "Dit is nou die einde van hierdie vraestel."
+//
+// Long pauses are stitched as repeated 1-second silent MP3 frames so we
+// neither pay for silent TTS nor exceed ElevenLabs `<break>` limits.
 
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { narratorVoiceId } from "@/lib/voices";
+import { SILENCE_1S_MP3_BASE64 } from "@/lib/silence";
 
 const SIGNED_URL_TTL = 60 * 60 * 24 * 7; // 7 days
 const TTS_MODEL = "eleven_v3";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const SILENCE_1S = Uint8Array.from(Buffer.from(SILENCE_1S_MP3_BASE64, "base64"));
 
 type VoiceSettings = {
   stability?: number;
@@ -28,14 +69,25 @@ type VoiceSettings = {
 };
 
 type ResolvedVoice = {
-  voiceId: string; // ElevenLabs voice id
+  voiceId: string;
   settings: VoiceSettings;
   name: string;
   castId: string | null;
 };
 
-function pause(seconds: number): string {
-  return `<break time="${seconds.toFixed(1)}s" />`;
+type Segment =
+  | { kind: "tts"; voice: ResolvedVoice; text: string }
+  | { kind: "silence"; seconds: number };
+
+function silence(seconds: number): Segment {
+  return { kind: "silence", seconds: Math.max(0, Math.round(seconds)) };
+}
+
+function silenceBytes(seconds: number): Uint8Array {
+  if (seconds <= 0) return new Uint8Array();
+  const out = new Uint8Array(SILENCE_1S.length * seconds);
+  for (let i = 0; i < seconds; i++) out.set(SILENCE_1S, i * SILENCE_1S.length);
+  return out;
 }
 
 async function ttsSegment(voice: ResolvedVoice, text: string): Promise<Uint8Array> {
@@ -90,21 +142,25 @@ export const generateExerciseAudio = createServerFn({ method: "POST" })
     const { data: ex, error: exErr } = await supabase
       .from("exercises")
       .select(
-        "id,number,rubric,intro,statements,assessment_id,voice_map,listening_scripts(sequence,speaker_label,transcript)",
+        "id,number,kind,rubric,intro,statements,assessment_id,voice_map,listening_scripts(sequence,speaker_label,transcript,item_index),questions(number,stem,speaker_index)",
       )
       .eq("id", data.exercise_id)
       .maybeSingle();
     if (exErr) throw new Error(exErr.message);
     if (!ex) throw new Error("Exercise not found or access denied");
 
-    const script = (ex.listening_scripts ?? [])
+    type ScriptRow = { sequence: number; speaker_label: string | null; transcript: string; item_index: number | null };
+    const script: ScriptRow[] = (ex.listening_scripts ?? [])
       .slice()
       .sort((a, b) => a.sequence - b.sequence);
     if (script.length === 0) {
       throw new Error("No transcript rows on this exercise — generate the paper first.");
     }
+    const questions = (ex.questions ?? [])
+      .slice()
+      .sort((a, b) => a.number - b.number);
 
-    // ---- Load the user's full voice library so we can resolve cast IDs ----
+    // ---- Voice library ----
     const { data: library } = await supabase
       .from("voice_cast")
       .select("id,voice_id,name,suitability,voice_settings")
@@ -119,13 +175,11 @@ export const generateExerciseAudio = createServerFn({ method: "POST" })
       });
     }
 
-    // Narrator: prefer a cast voice flagged narrator
     const narratorRow = [...byId.values()].find((v) => v.suitability.narrator);
     const narrator: ResolvedVoice = narratorRow
       ? { voiceId: narratorRow.voice_id, settings: narratorRow.voice_settings, name: narratorRow.name, castId: null }
       : { voiceId: narratorVoiceId(), settings: {}, name: "Verteller", castId: null };
 
-    // Resolve per-label voices from voice_map.
     const voiceMap = (ex.voice_map ?? {}) as Record<string, string | { id?: string; voice_id?: string }>;
     const resolveLabel = (label: string): ResolvedVoice => {
       const raw = voiceMap[label];
@@ -136,48 +190,117 @@ export const generateExerciseAudio = createServerFn({ method: "POST" })
         if (hit) return { voiceId: hit.voice_id, settings: hit.voice_settings, name: hit.name, castId: ref };
         return narrator;
       }
-      // legacy raw ElevenLabs id
       return { voiceId: ref, settings: {}, name: label, castId: null };
     };
 
-    type Segment = { voice: ResolvedVoice; text: string };
+    // Group transcript turns by item_index (null → single bucket 0).
+    const byItem = new Map<number, ScriptRow[]>();
+    for (const row of script) {
+      const idx = row.item_index ?? 0;
+      const list = byItem.get(idx) ?? [];
+      list.push(row);
+      byItem.set(idx, list);
+    }
+    const itemKeys = [...byItem.keys()].sort((a, b) => a - b);
+
+    const ttsItem = (rows: ScriptRow[]): Segment[] =>
+      rows.map((r) => ({
+        kind: "tts" as const,
+        voice: r.speaker_label ? resolveLabel(r.speaker_label) : narrator,
+        text: r.transcript,
+      }));
+
     const segs: Segment[] = [];
+    const N = (text: string): Segment => ({ kind: "tts", voice: narrator, text });
 
-    segs.push({ voice: narrator, text: `Oefening ${ex.number}. ${ex.rubric} ${pause(1.5)}` });
+    const exNum = ex.number;
 
-    const statements = Array.isArray(ex.statements)
-      ? (ex.statements as { letter: string; text: string }[])
-      : null;
-    if (statements && statements.length > 0) {
-      const list = statements.map((s) => `${s.letter}. ${s.text}`).join(` ${pause(0.4)} `);
-      segs.push({
-        voice: narrator,
-        text: `Jy het nou tyd om die stellings te lees. ${pause(0.8)} ${list} ${pause(2.0)}`,
+    // Always lead with the exercise rubric.
+    segs.push(N(`Oefening ${exNum}. ${ex.rubric}`));
+
+    if (exNum === 1) {
+      // 8 short clips, no shared intro pause beyond rubric.
+      itemKeys.forEach((k, i) => {
+        const q = questions[i];
+        segs.push(N(`Vraag ${q?.number ?? i + 1}. ${q?.stem ?? ""}`));
+        segs.push(silence(3));
+        segs.push(...ttsItem(byItem.get(k)!));
+        segs.push(silence(5));
+        segs.push(...ttsItem(byItem.get(k)!));
+        segs.push(silence(5));
       });
+      segs.push(N(`Hierdie is nou die einde van Oefening ${exNum}. Gaan nou na Oefening ${exNum + 1}.`));
+      segs.push(silence(5));
+    } else if (exNum === 2) {
+      segs.push(silence(5));
+      itemKeys.forEach((k, i) => {
+        const pair = questions.filter((_, idx) => idx === i * 2 || idx === i * 2 + 1);
+        const qNums = pair.map((q) => q.number).join(" en ");
+        segs.push(N(`Kyk nou na vraag ${qNums}.`));
+        segs.push(silence(15));
+        segs.push(...ttsItem(byItem.get(k)!));
+        segs.push(silence(5));
+        segs.push(...ttsItem(byItem.get(k)!));
+        segs.push(silence(5));
+      });
+      segs.push(N(`Dit is die einde van Oefening ${exNum}. Gaan nou na Oefening ${exNum + 1}.`));
+      segs.push(silence(5));
+    } else if (exNum === 3) {
+      const first = questions[0]?.number;
+      const last = questions[questions.length - 1]?.number;
+      segs.push(N(`Kyk nou na vrae ${first}–${last}.`));
+      segs.push(silence(40));
+      segs.push(...ttsItem(script));
+      segs.push(silence(10));
+      segs.push(N("Jy sal die praatjie nou nog 'n keer hoor."));
+      segs.push(...ttsItem(script));
+      segs.push(silence(10));
+      segs.push(N(`Dit is die einde van Oefening ${exNum}. Gaan nou na Oefening ${exNum + 1}.`));
+      segs.push(silence(5));
+    } else if (exNum === 4) {
+      segs.push(N("Lees nou stellings A–H."));
+      segs.push(silence(30));
+      const playSpeakers = () => {
+        itemKeys.forEach((k, i) => {
+          segs.push(N(`Spreker ${i + 1}.`));
+          segs.push(...ttsItem(byItem.get(k)!));
+          segs.push(silence(10));
+        });
+      };
+      playSpeakers();
+      segs.push(N("Nou sal jy weer na die ses sprekers luister."));
+      playSpeakers();
+      segs.push(N(`Dit is die einde van Oefening ${exNum}. Gaan nou na Oefening ${exNum + 1}.`));
+      segs.push(silence(5));
+    } else if (exNum === 5) {
+      const first = questions[0]?.number;
+      const last = questions[questions.length - 1]?.number;
+      segs.push(N(`Kyk nou na vrae ${first}–${last}.`));
+      segs.push(silence(45));
+      segs.push(...ttsItem(script));
+      segs.push(N("Jy sal die onderhoud nou nog een keer hoor."));
+      segs.push(...ttsItem(script));
+      segs.push(silence(10));
+      segs.push(N(`Hierdie is die einde van Oefening ${exNum}. Jy het nou 6 minute om jou antwoorde op die antwoordblad te skryf. Jy sal gewaarsku word wanneer daar nog net 1 minuut oor is.`));
+      segs.push(silence(5 * 60));
+      segs.push(N("Daar is nou 1 minuut oor."));
+      segs.push(silence(60));
+      segs.push(N("Dit is nou die einde van hierdie vraestel."));
+    } else {
+      // Fallback: replay once with 5s between.
+      segs.push(...ttsItem(script));
+      segs.push(silence(5));
     }
 
-    if (ex.intro && ex.intro.trim()) {
-      segs.push({ voice: narrator, text: `${ex.intro} ${pause(1.0)}` });
-    }
-
-    const playScript = () => {
-      for (const row of script) {
-        const label = row.speaker_label?.trim() ?? "";
-        const voice = label ? resolveLabel(label) : narrator;
-        segs.push({ voice, text: `${pause(0.4)} ${row.transcript}` });
-      }
-    };
-
-    segs.push({ voice: narrator, text: `${pause(1.0)} Luister nou na die opname. ${pause(1.5)}` });
-    playScript();
-    segs.push({ voice: narrator, text: `${pause(2.0)} Jy sal nou die opname weer hoor. ${pause(1.5)}` });
-    playScript();
-    segs.push({ voice: narrator, text: `${pause(1.5)} Einde van Oefening ${ex.number}.` });
-
+    // ---- Synthesise ----
     const audioBufs: Uint8Array[] = [];
     for (const seg of segs) {
-      // eslint-disable-next-line no-await-in-loop
-      audioBufs.push(await ttsSegment(seg.voice, seg.text));
+      if (seg.kind === "silence") {
+        audioBufs.push(silenceBytes(seg.seconds));
+      } else if (seg.text.trim()) {
+        // eslint-disable-next-line no-await-in-loop
+        audioBufs.push(await ttsSegment(seg.voice, seg.text.trim()));
+      }
     }
     const stitched = concat(audioBufs);
 
