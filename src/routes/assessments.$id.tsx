@@ -198,10 +198,28 @@ function EditorContent() {
                 ex={ex}
                 showMarks={showMarks}
                 showTranscript={showTranscript}
+                onAudioGenerated={() => query.refetch()}
               />
             ))}
+
+            <section id="exports" className="border-t border-border pt-6 scroll-mt-20">
+              <h2 className="font-display text-lg font-semibold">
+                {locale === "af" ? "Uitvoere" : "Exports"}
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {locale === "af"
+                  ? "Laai die vraestel, memorandum en transkripsie af as PDF."
+                  : "Download the question paper, mark scheme and transcript as PDF."}
+              </p>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <PdfButton id={id} kind="paper" label={locale === "af" ? "Vraestel PDF" : "Question paper PDF"} cached={!!assessment.paper_pdf_path} onChange={() => query.refetch()} />
+                <PdfButton id={id} kind="mark_scheme" label={locale === "af" ? "Memorandum PDF" : "Mark scheme PDF"} cached={!!assessment.mark_scheme_pdf_path} onChange={() => query.refetch()} />
+                <PdfButton id={id} kind="transcript" label={locale === "af" ? "Transkripsie PDF" : "Transcript PDF"} cached={!!assessment.transcript_pdf_path} onChange={() => query.refetch()} />
+              </div>
+            </section>
           </div>
         )}
+
       </div>
     </div>
   );
