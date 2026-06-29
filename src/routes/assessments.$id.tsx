@@ -214,6 +214,7 @@ function EditorContent() {
                 showMarks={showMarks}
                 showTranscript={showTranscript}
                 onAudioGenerated={() => query.refetch()}
+                onAudioBusyChange={(b) => setAudioBusy(ex.id, b)}
               />
             ))}
 
