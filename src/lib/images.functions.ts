@@ -57,7 +57,7 @@ export const generateOptionImage = createServerFn({ method: "POST" })
     const { data: opt, error: optErr } = await supabase
       .from("question_options")
       .select(
-        "id,letter,image_prompt,image_url,question_id,questions!inner(exercise_id,exercises!inner(assessment_id,assessments!inner(user_id)))",
+        "id,letter,image_prompt,image_url,question_id,questions!inner(exercise_id,exercises!inner(assessment_id))",
       )
       .eq("id", data.option_id)
       .maybeSingle();
@@ -66,7 +66,7 @@ export const generateOptionImage = createServerFn({ method: "POST" })
     if (!opt.image_prompt) throw new Error("This option has no image_prompt");
 
     const assessmentId = (opt as unknown as {
-      questions: { exercises: { assessment_id: string; assessments: { user_id: string } } };
+      questions: { exercises: { assessment_id: string } };
     }).questions.exercises.assessment_id;
 
     const png = await generatePngFromPrompt(opt.image_prompt);
