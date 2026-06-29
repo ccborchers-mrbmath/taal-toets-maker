@@ -254,11 +254,13 @@ function ExerciseBlock({
   showMarks,
   showTranscript,
   onAudioGenerated,
+  onAudioBusyChange,
 }: {
   ex: FullPaper["exercises"][number];
   showMarks: boolean;
   showTranscript: boolean;
   onAudioGenerated?: () => void;
+  onAudioBusyChange?: (busy: boolean) => void;
 }) {
 
   const { locale } = useT();
