@@ -14,19 +14,14 @@ import { generateExerciseAudio, refreshExerciseAudioUrl } from "@/lib/audio.func
 
 type PdfKind = "paper" | "mark_scheme" | "transcript";
 
-function downloadBase64Pdf(filename: string, base64: string) {
-  const bin = atob(base64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const blob = new Blob([bytes], { type: "application/pdf" });
-  const url = URL.createObjectURL(blob);
+function triggerDownload(url: string, filename: string) {
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
+  a.rel = "noopener";
   document.body.appendChild(a);
   a.click();
   a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export const Route = createFileRoute("/assessments/$id")({
@@ -46,6 +41,9 @@ type FullPaper = {
   assessment: {
     id: string; title: string; paper_code: string; status: string;
     level: string; part_type: string; generation_error: string | null;
+    paper_pdf_path: string | null;
+    mark_scheme_pdf_path: string | null;
+    transcript_pdf_path: string | null;
   };
   exercises: {
     id: string; number: number; kind: string; rubric: string;
@@ -73,7 +71,7 @@ function EditorContent() {
     queryFn: async () => {
       const { data: a, error } = await supabase
         .from("assessments")
-        .select("id,title,paper_code,status,level,part_type,generation_error")
+        .select("id,title,paper_code,status,level,part_type,generation_error,paper_pdf_path,mark_scheme_pdf_path,transcript_pdf_path")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -170,9 +168,9 @@ function EditorContent() {
                 {showTranscript ? (locale === "af" ? "Versteek transkripsie" : "Hide transcript") : t("editor.transcript")}
               </Button>
               <div id="export-bar" className="ml-auto flex flex-wrap items-center gap-2">
-                <PdfButton id={id} kind="paper" label={locale === "af" ? "Vraestel PDF" : "Question paper PDF"} />
-                <PdfButton id={id} kind="mark_scheme" label={locale === "af" ? "Memorandum PDF" : "Mark scheme PDF"} />
-                <PdfButton id={id} kind="transcript" label={locale === "af" ? "Transkripsie PDF" : "Transcript PDF"} />
+                <PdfButton id={id} kind="paper" label={locale === "af" ? "Vraestel PDF" : "Question paper PDF"} cached={!!assessment.paper_pdf_path} onChange={() => query.refetch()} />
+                <PdfButton id={id} kind="mark_scheme" label={locale === "af" ? "Memorandum PDF" : "Mark scheme PDF"} cached={!!assessment.mark_scheme_pdf_path} onChange={() => query.refetch()} />
+                <PdfButton id={id} kind="transcript" label={locale === "af" ? "Transkripsie PDF" : "Transcript PDF"} cached={!!assessment.transcript_pdf_path} onChange={() => query.refetch()} />
               </div>
             </>
           )}
@@ -415,14 +413,30 @@ function ExerciseBlock({
   );
 }
 
-function PdfButton({ id, kind, label }: { id: string; kind: PdfKind; label: string }) {
+function PdfButton({
+  id,
+  kind,
+  label,
+  cached,
+  onChange,
+}: {
+  id: string;
+  kind: PdfKind;
+  label: string;
+  cached: boolean;
+  onChange: () => void;
+}) {
   const { locale } = useT();
-  const [busy, setBusy] = useState(false);
-  async function run() {
-    setBusy(true);
+  const [busy, setBusy] = useState<false | "download" | "regen">(false);
+  async function run(force: boolean) {
+    setBusy(force ? "regen" : "download");
     try {
-      const res = await generatePaperPdf({ data: { assessment_id: id, kind } });
-      downloadBase64Pdf(res.filename, res.base64);
+      const res = await generatePaperPdf({ data: { assessment_id: id, kind, force } });
+      triggerDownload(res.download_url, res.filename);
+      if (!res.cached) onChange();
+      if (force) {
+        toast.success(locale === "af" ? "PDF herskep" : "PDF regenerated");
+      }
     } catch (err) {
       toast.error(locale === "af" ? "PDF misluk" : "PDF failed", {
         description: err instanceof Error ? err.message : String(err),
@@ -432,18 +446,42 @@ function PdfButton({ id, kind, label }: { id: string; kind: PdfKind; label: stri
     }
   }
   return (
-    <Button variant="outline" size="sm" onClick={run} disabled={busy}>
-      {busy ? (
-        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-      ) : kind === "paper" ? (
-        <Download className="mr-1.5 h-3.5 w-3.5" />
-      ) : (
-        <FileText className="mr-1.5 h-3.5 w-3.5" />
+    <div className="inline-flex items-center">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => run(false)}
+        disabled={!!busy}
+        className={cached ? "rounded-r-none border-r-0" : ""}
+        title={cached ? (locale === "af" ? "Laai bestaande PDF af" : "Download existing PDF") : undefined}
+      >
+        {busy === "download" ? (
+          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+        ) : cached ? (
+          <Download className="mr-1.5 h-3.5 w-3.5" />
+        ) : kind === "paper" ? (
+          <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+        ) : (
+          <FileText className="mr-1.5 h-3.5 w-3.5" />
+        )}
+        {cached ? (locale === "af" ? `Laai ${label.replace(" PDF", "")} af` : `Download ${label.replace(" PDF", "")}`) : label}
+      </Button>
+      {cached && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => run(true)}
+          disabled={!!busy}
+          className="rounded-l-none px-2"
+          title={locale === "af" ? "Herskep PDF" : "Regenerate PDF"}
+        >
+          {busy === "regen" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+        </Button>
       )}
-      {label}
-    </Button>
+    </div>
   );
 }
+
 
 function AudioBlock({ ex }: { ex: FullPaper["exercises"][number] }) {
   const { locale } = useT();
