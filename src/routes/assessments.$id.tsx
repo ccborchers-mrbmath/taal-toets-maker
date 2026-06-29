@@ -69,6 +69,15 @@ function EditorContent() {
   const [generating, setGenerating] = useState(false);
   const [showMarks, setShowMarks] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [audioBusyIds, setAudioBusyIds] = useState<Set<string>>(() => new Set());
+  const setAudioBusy = (exId: string, busy: boolean) => {
+    setAudioBusyIds((prev) => {
+      const next = new Set(prev);
+      if (busy) next.add(exId);
+      else next.delete(exId);
+      return next;
+    });
+  };
 
   const query = useQuery<FullPaper | null>({
     queryKey: ["assessment-full", id],
