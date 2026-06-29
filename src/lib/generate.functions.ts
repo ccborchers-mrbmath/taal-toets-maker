@@ -349,6 +349,33 @@ function buildUserGuidance(exNum: ExerciseNum, parsed: ParsedBrief): string {
 // Single AI call for one exercise
 // ---------------------------------------------------------------------------
 
+export type CastLite = {
+  id: string;
+  name: string;
+  gender: string;
+  age_band: string;
+  tags: string[];
+};
+
+function castBlock(cast: CastLite[]): string {
+  if (cast.length === 0) {
+    return "Geen stem-rolverdeling is verskaf nie — gebruik kort etikette ('M', 'V', voorname).";
+  }
+  const lines = cast.map(
+    (c) =>
+      `  • ${c.name} — ${c.gender}, ${c.age_band}${c.tags.length ? `, ${c.tags.join(", ")}` : ""}`,
+  );
+  return [
+    "BESKIKBARE STEM-ROLVERDELING (gebruik UITSLUITLIK hierdie name as `speaker`):",
+    ...lines,
+    "Reëls:",
+    "  - Elke `speaker` veld in `turns` MOET presies een van bogenoemde name wees (hoofletter-sensitief).",
+    "  - Kies stemme wie se geslag en ouderdom by die karakter pas.",
+    "  - Moenie meer afsonderlike sprekers in 'n item gebruik as wat in die rolverdeling beskikbaar is nie.",
+    "  - Moenie verteller-instruksies (rubriek) in `turns` insluit nie — slegs karakter-spraak.",
+  ].join("\n");
+}
+
 async function generateExercise(opts: {
   apiKey: string;
   level: "core" | "extended";
@@ -356,10 +383,12 @@ async function generateExercise(opts: {
   title: string;
   exNum: ExerciseNum;
   brief: ParsedBrief;
+  cast: CastLite[];
 }) {
   const spec = EXERCISE_BRIEFS[opts.exNum];
   const teacherGuidance = buildUserGuidance(opts.exNum, opts.brief);
   const themeForPrompt = opts.brief.theme || opts.topic || "Kies 'n ouderdomstoepaslike alledaagse tema.";
+  const cast = castBlock(opts.cast);
 
   const systemPrompt = `Jy is 'n kundige skrywer van Cambridge IGCSE Afrikaans as 'n Tweede Taal (0548) Vraestel 2 (Luister) toetsmateriaal.
 Skryf alle inhoud in natuurlike Suid-Afrikaanse Afrikaans wat toepaslik is vir 14–16-jarige kandidate op ${opts.level === "extended" ? "die Uitgebreide (Extended)" : "die Kern (Core)"} vlak.
@@ -367,9 +396,10 @@ Skryf alle inhoud in natuurlike Suid-Afrikaanse Afrikaans wat toepaslik is vir 1
 - Maak afleiers geloofwaardig — verkeerde opsies moet redelik klink.
 - Antwoorde moet ondubbelsinnig deur die teks ondersteun word.
 - Moenie antwoordletters in die transkripsie noem nie.
-- Hou spreker-etikette KORT (bv. "M", "V", "M1", "V1", "Onderhoudvoerder", of 'n voornaam).
-- Verskaf 'n "speakers_meta" beskrywing vir ELKE spreker in ELKE item in die vorm 'ETIKET: geslag, ouderdom, aksent' (bv. 'V: vroulik, tienerouderdom, Pretoriase aksent').
-- Sillabus-relevante temas: alledaagse lewe, skool, vryetyd, omgewing, werk/loopbane, kultuur, tegnologie.`;
+- Verskaf 'n "speakers_meta" beskrywing vir ELKE spreker in ELKE item in die vorm 'NAAM: geslag, ouderdom, aksent' (bv. 'Sarah: vroulik, tienerouderdom, Pretoriase aksent').
+- Sillabus-relevante temas: alledaagse lewe, skool, vryetyd, omgewing, werk/loopbane, kultuur, tegnologie.
+
+${cast}`;
 
   const userPrompt = `Genereer Oefening ${opts.exNum} van 'n ${opts.level === "extended" ? "UITGEBREIDE" : "KERN"}-vlak Cambridge IGCSE 0548/02 luistervraestel.
 
@@ -423,6 +453,18 @@ Vraagnommers moet in die reeks ${spec.numberRange[0]}–${spec.numberRange[1]} w
     reading_pause_s: spec.readingPause,
     ...args,
   };
+}
+
+// Filter the paper-wide cast to the voices flagged suitable for a given exercise.
+function castForExercise(all: (CastLite & { suitability: Record<string, boolean | undefined> })[], exNum: ExerciseNum): CastLite[] {
+  const want: string[] =
+    exNum === 1 ? ["ex1"]
+    : exNum === 2 ? ["ex2"]
+    : exNum === 3 ? ["ex3"]
+    : exNum === 4 ? ["ex4"]
+    : ["ex5_interviewer", "ex5_interviewee"];
+  const filtered = all.filter((v) => want.some((k) => v.suitability?.[k]));
+  return (filtered.length ? filtered : all).map(({ id, name, gender, age_band, tags }) => ({ id, name, gender, age_band, tags }));
 }
 
 // ---------------------------------------------------------------------------
