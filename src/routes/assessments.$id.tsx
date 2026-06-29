@@ -558,8 +558,24 @@ function WorkflowStepper({
       key: "audio",
       icon: Headphones,
       title: t("3. Klank", "3. Audio"),
-      sub: t("Binnekort beskikbaar", "Coming soon"),
+      sub:
+        audioState === "locked"
+          ? t("Wag op teks", "Waiting on text")
+          : t(
+              `${doneAudio}/${totalAudio} oefeninge met klank`,
+              `${doneAudio}/${totalAudio} exercises with audio`,
+            ),
       state: audioState,
+      action:
+        audioState === "pending" || audioState === "active"
+          ? {
+              label: t("Spring na Oefening 1", "Jump to Exercise 1"),
+              onClick: () => {
+                const el = document.getElementById("exercise-1");
+                el?.scrollIntoView({ behavior: "smooth", block: "start" });
+              },
+            }
+          : undefined,
     },
     {
       key: "pdf",
