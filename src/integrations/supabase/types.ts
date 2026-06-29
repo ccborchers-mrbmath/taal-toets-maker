@@ -17,12 +17,15 @@ export type Database = {
       assessments: {
         Row: {
           audio_url: string | null
+          brief: string | null
           created_at: string
           created_by: string
           generation_error: string | null
           id: string
+          level: string
           paper_code: string
           paper_name: string
+          part_type: string
           status: string
           subject_code: string
           theme_hint: string | null
@@ -31,12 +34,15 @@ export type Database = {
         }
         Insert: {
           audio_url?: string | null
+          brief?: string | null
           created_at?: string
           created_by: string
           generation_error?: string | null
           id?: string
+          level?: string
           paper_code?: string
           paper_name?: string
+          part_type?: string
           status?: string
           subject_code?: string
           theme_hint?: string | null
@@ -45,12 +51,15 @@ export type Database = {
         }
         Update: {
           audio_url?: string | null
+          brief?: string | null
           created_at?: string
           created_by?: string
           generation_error?: string | null
           id?: string
+          level?: string
           paper_code?: string
           paper_name?: string
+          part_type?: string
           status?: string
           subject_code?: string
           theme_hint?: string | null
