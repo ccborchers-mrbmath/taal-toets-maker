@@ -163,6 +163,7 @@ function EditorContent() {
           exercises={exercises}
           onGenerate={run}
           generating={isGenerating}
+          audioInFlight={audioInFlight}
         />
 
         {/* Action bar */}
