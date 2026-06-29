@@ -99,7 +99,7 @@ type FullPaper = {
         image_prompt: string | null;
       }[];
     }[];
-    listening_scripts: { sequence: number; speaker_label: string | null; transcript: string }[];
+    listening_scripts: { sequence: number; speaker_label: string | null; transcript: string; item_index: number | null }[];
   }[];
 };
 
@@ -378,23 +378,311 @@ function renderMarkScheme(ctx: Ctx, p: FullPaper) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Transcript — matches the Cambridge specimen layout (R1 narrator cues,
+// PAUSE markers, * / ** repeat brackets, exercise/question link sentences).
+// ---------------------------------------------------------------------------
+
+const NARRATOR_X = MARGIN;
+const BODY_X = MARGIN + 26;
+const NARRATOR_LABEL_W = 22;
+
+function drawNarratorLine(ctx: Ctx, text: string, opts: { bold?: boolean } = {}) {
+  ensure(ctx, 14);
+  gap(ctx, 2);
+  // "R1" cue
+  ctx.page.drawText("R1", {
+    x: NARRATOR_X,
+    y: ctx.y - 10,
+    size: 10,
+    font: ctx.bold,
+    color: rgb(0.15, 0.2, 0.35),
+  });
+  const lines = wrap(opts.bold ? ctx.bold : ctx.font, text, 10.5, CONTENT_W - NARRATOR_LABEL_W);
+  const lh = 12.5;
+  for (let i = 0; i < lines.length; i++) {
+    if (i > 0) ensure(ctx, lh);
+    ctx.page.drawText(lines[i], {
+      x: NARRATOR_X + NARRATOR_LABEL_W,
+      y: ctx.y - 10,
+      size: 10.5,
+      font: opts.bold ? ctx.bold : ctx.font,
+      color: rgb(0.1, 0.12, 0.2),
+    });
+    ctx.y -= lh;
+  }
+  gap(ctx, 2);
+}
+
+function drawPause(ctx: Ctx, label: string) {
+  ensure(ctx, 14);
+  gap(ctx, 2);
+  ctx.page.drawText(`PAUSE  ${label}`, {
+    x: BODY_X,
+    y: ctx.y - 10,
+    size: 9.5,
+    font: ctx.bold,
+    color: rgb(0.4, 0.3, 0.2),
+  });
+  ctx.y -= 12;
+  gap(ctx, 2);
+}
+
+function drawRepeat(ctx: Ctx) {
+  ensure(ctx, 14);
+  gap(ctx, 2);
+  ctx.page.drawText("REPEAT FROM * TO **", {
+    x: BODY_X,
+    y: ctx.y - 10,
+    size: 9.5,
+    font: ctx.bold,
+    color: rgb(0.4, 0.3, 0.2),
+  });
+  ctx.y -= 12;
+  gap(ctx, 2);
+}
+
+function drawSpeakerCue(ctx: Ctx, text: string) {
+  ensure(ctx, 12);
+  const lines = wrap(ctx.italic, text, 9.5, CONTENT_W - (BODY_X - MARGIN));
+  for (const ln of lines) {
+    ensure(ctx, 11);
+    ctx.page.drawText(ln, {
+      x: BODY_X,
+      y: ctx.y - 9,
+      size: 9.5,
+      font: ctx.italic,
+      color: rgb(0.35, 0.35, 0.4),
+    });
+    ctx.y -= 11;
+  }
+}
+
+function drawDialogTurn(
+  ctx: Ctx,
+  label: string,
+  text: string,
+  marks: { open?: boolean; close?: boolean },
+) {
+  const labelStr = `${label}:`;
+  const open = marks.open ? "* " : "";
+  const close = marks.close ? " **" : "";
+  const body = `${open}${text}${close}`;
+  ensure(ctx, 14);
+  gap(ctx, 1);
+  // label
+  ctx.page.drawText(labelStr, {
+    x: BODY_X,
+    y: ctx.y - 10,
+    size: 10.5,
+    font: ctx.bold,
+    color: rgb(0.15, 0.15, 0.2),
+  });
+  const indent = BODY_X + Math.max(18, ctx.bold.widthOfTextAtSize(labelStr, 10.5) + 6);
+  const lines = wrap(ctx.font, body, 10.5, PAGE_W - MARGIN - indent);
+  const lh = 12.5;
+  for (let i = 0; i < lines.length; i++) {
+    if (i > 0) ensure(ctx, lh);
+    ctx.page.drawText(lines[i], {
+      x: indent,
+      y: ctx.y - 10,
+      size: 10.5,
+      font: ctx.font,
+      color: rgb(0.1, 0.12, 0.2),
+    });
+    ctx.y -= lh;
+  }
+  gap(ctx, 1);
+}
+
+type ScriptTurn = FullPaper["exercises"][number]["listening_scripts"][number];
+
+function groupByItem(scripts: ScriptTurn[]): ScriptTurn[][] {
+  const sorted = [...scripts].sort((a, b) => a.sequence - b.sequence);
+  const groups = new Map<number, ScriptTurn[]>();
+  for (const s of sorted) {
+    const k = s.item_index ?? 0;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k)!.push(s);
+  }
+  return [...groups.keys()].sort((a, b) => a - b).map((k) => groups.get(k)!);
+}
+
+function uniqueSpeakers(turns: ScriptTurn[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of turns) {
+    const l = (t.speaker_label ?? "").trim();
+    if (!l || seen.has(l)) continue;
+    seen.add(l);
+    out.push(l);
+  }
+  return out;
+}
+
+function drawTurns(ctx: Ctx, turns: ScriptTurn[]) {
+  for (let i = 0; i < turns.length; i++) {
+    drawDialogTurn(
+      ctx,
+      turns[i].speaker_label ?? "",
+      turns[i].transcript,
+      { open: i === 0, close: i === turns.length - 1 },
+    );
+  }
+}
+
+function renderTranscriptCover(ctx: Ctx, a: FullPaper["assessment"]) {
+  ctx.y = PAGE_H - MARGIN - 30;
+  ctx.page.drawText("Cambridge IGCSE", {
+    x: MARGIN,
+    y: ctx.y,
+    size: 11,
+    font: ctx.bold,
+    color: rgb(0.15, 0.2, 0.35),
+  });
+  ctx.y -= 26;
+  drawText(ctx, "AFRIKAANS AS A SECOND LANGUAGE", { size: 16, font: ctx.bold });
+  drawText(ctx, `${a.paper_code}`, { size: 11, color: rgb(0.35, 0.35, 0.4) });
+  gap(ctx, 4);
+  drawText(ctx, "Paper 2 Listening", { size: 12, font: ctx.bold });
+  drawText(ctx, "For examination from 2025", { size: 10, color: rgb(0.35, 0.35, 0.4) });
+  gap(ctx, 16);
+  drawText(ctx, "TRANSCRIPT", { size: 13, font: ctx.bold });
+  drawText(ctx, "Approximately 50 minutes (including 6 minutes' transfer time)", {
+    size: 10,
+    font: ctx.italic,
+    color: rgb(0.35, 0.35, 0.4),
+  });
+  gap(ctx, 18);
+  rule(ctx);
+}
+
 function renderTranscript(ctx: Ctx, p: FullPaper) {
-  for (const ex of p.exercises) {
-    ensure(ctx, 40);
-    drawText(ctx, exTitle(ex.number), { size: 13, font: ctx.bold });
+  renderTranscriptCover(ctx, p.assessment);
+  drawNarratorLine(
+    ctx,
+    `Cambridge Assessment International Education, Cambridge IGCSE Afrikaans as a Second Language, ${p.assessment.paper_code}, Paper 2, Listening.`,
+  );
+  drawNarratorLine(ctx, "[BEEP]");
+
+  for (let i = 0; i < p.exercises.length; i++) {
+    const ex = p.exercises[i];
+    const nextEx = p.exercises[i + 1];
+    renderTranscriptExercise(ctx, ex);
+
     gap(ctx, 4);
-    drawText(ctx, ex.rubric, { size: 9, font: ctx.italic, color: rgb(0.45, 0.4, 0.35) });
-    gap(ctx, 6);
-    const lines = [...ex.listening_scripts].sort((a, b) => a.sequence - b.sequence);
-    if (!lines.length) {
-      drawText(ctx, "(geen transkripsie nie)", { size: 10, color: rgb(0.5, 0.5, 0.5) });
+    if (nextEx) {
+      drawNarratorLine(
+        ctx,
+        `Hierdie is die einde van oefening ${ex.number}. Gaan nou na oefening ${nextEx.number}.`,
+        { bold: true },
+      );
+      drawPause(ctx, "00'05\"");
+    } else {
+      drawNarratorLine(
+        ctx,
+        "Hierdie is die einde van die toets. Jy het nou vyf minute om jou antwoorde na die antwoordblad oor te dra.",
+        { bold: true },
+      );
+      drawPause(ctx, "05'00\"");
+      drawNarratorLine(ctx, "Jy het nou een minuut oor.");
+      drawPause(ctx, "01'00\"");
+      drawNarratorLine(ctx, "Sit nou jou penne neer. Dit is die einde van die eksamen.", { bold: true });
     }
-    for (const ln of lines) {
-      const label = ln.speaker_label ? `${ln.speaker_label}: ` : "";
-      drawText(ctx, `${label}${ln.transcript}`, { size: 10 });
-      gap(ctx, 3);
+  }
+}
+
+function renderTranscriptExercise(ctx: Ctx, ex: FullPaper["exercises"][number]) {
+  ensure(ctx, 30);
+  gap(ctx, 8);
+  drawNarratorLine(ctx, `Oefening ${ex.number}`, { bold: true });
+  if (ex.rubric) drawNarratorLine(ctx, ex.rubric);
+
+  const groups = groupByItem(ex.listening_scripts);
+  const qs = [...ex.questions].sort((a, b) => a.number - b.number);
+
+  switch (ex.kind) {
+    case "mcq_picture": {
+      // One item per question; 3s pre-pause, 5s + REPEAT + 5s after each.
+      for (let i = 0; i < groups.length; i++) {
+        const q = qs[i];
+        if (q) {
+          drawNarratorLine(ctx, `Vraag ${q.number}`, { bold: true });
+          drawNarratorLine(ctx, q.stem);
+        }
+        drawPause(ctx, "00'03\"");
+        const speakers = uniqueSpeakers(groups[i]);
+        for (const s of speakers) drawSpeakerCue(ctx, `${s}`);
+        drawTurns(ctx, groups[i]);
+        drawPause(ctx, "00'05\"");
+        drawRepeat(ctx);
+        drawPause(ctx, "00'05\"");
+      }
+      break;
     }
-    rule(ctx);
+    case "mcq_text_pair": {
+      // Each item drives two questions; 15s reading pause, then 5s/REPEAT/5s.
+      drawPause(ctx, "00'05\"");
+      for (let i = 0; i < groups.length; i++) {
+        const qA = qs[i * 2];
+        const qB = qs[i * 2 + 1];
+        if (qA && qB) {
+          drawNarratorLine(ctx, `Kyk nou na vraag ${qA.number} en ${qB.number}.`, { bold: true });
+        }
+        drawPause(ctx, "00'15\"");
+        const speakers = uniqueSpeakers(groups[i]);
+        for (const s of speakers) drawSpeakerCue(ctx, `${s}`);
+        drawTurns(ctx, groups[i]);
+        drawPause(ctx, "00'05\"");
+        drawRepeat(ctx);
+        drawPause(ctx, "00'05\"");
+      }
+      break;
+    }
+    case "mcq_long": {
+      const first = qs[0]?.number;
+      const last = qs[qs.length - 1]?.number;
+      if (first && last) {
+        drawNarratorLine(ctx, `Kyk nou na vrae ${first}–${last}.`, { bold: true });
+      }
+      drawPause(ctx, ex.number === 3 ? "00'40\"" : "00'45\"");
+      const all = groups.flat();
+      const speakers = uniqueSpeakers(all);
+      for (const s of speakers) drawSpeakerCue(ctx, `${s}`);
+      drawTurns(ctx, all);
+      drawPause(ctx, "00'10\"");
+      drawNarratorLine(
+        ctx,
+        ex.number === 3
+          ? "Jy sal die praatjie nou nog 'n keer hoor."
+          : "Jy sal die onderhoud nou nog een keer hoor.",
+      );
+      drawRepeat(ctx);
+      drawPause(ctx, "00'10\"");
+      break;
+    }
+    case "matching": {
+      drawNarratorLine(ctx, "Lees nou stellings A–H.");
+      drawPause(ctx, "00'30\"");
+      for (let i = 0; i < groups.length; i++) {
+        drawNarratorLine(ctx, `Spreker ${i + 1}`, { bold: true });
+        const speakers = uniqueSpeakers(groups[i]);
+        for (const s of speakers) drawSpeakerCue(ctx, `${s}`);
+        drawTurns(ctx, groups[i]);
+        drawPause(ctx, "00'10\"");
+      }
+      drawNarratorLine(ctx, "Nou sal jy weer na die ses tieners luister.");
+      drawRepeat(ctx);
+      drawPause(ctx, "00'10\"");
+      break;
+    }
+    default: {
+      // Fallback: dump turns as a single block
+      const all = groups.flat();
+      const speakers = uniqueSpeakers(all);
+      for (const s of speakers) drawSpeakerCue(ctx, `${s}`);
+      drawTurns(ctx, all);
+    }
   }
 }
 
@@ -511,7 +799,7 @@ export const generatePaperPdf = createServerFn({ method: "POST" })
     const { data: exsRaw, error: exErr } = await supabase
       .from("exercises")
       .select(
-        "id,number,kind,rubric,statements,questions(id,number,stem,correct_letter,speaker_index,question_options(id,letter,text,image_prompt)),listening_scripts(sequence,speaker_label,transcript)",
+        "id,number,kind,rubric,statements,questions(id,number,stem,correct_letter,speaker_index,question_options(id,letter,text,image_prompt)),listening_scripts(sequence,speaker_label,transcript,item_index)",
       )
       .eq("assessment_id", data.assessment_id)
       .order("number");
@@ -546,7 +834,9 @@ export const generatePaperPdf = createServerFn({ method: "POST" })
       },
     };
     drawPageHeader(ctx);
-    await renderCover(ctx, a, kindLabel[data.kind]);
+    if (data.kind !== "transcript") {
+      await renderCover(ctx, a, kindLabel[data.kind]);
+    }
 
     if (data.kind === "paper") {
       await renderPaper(ctx, paper, admin as unknown as SupabaseAdminLike);
