@@ -127,15 +127,6 @@ function EditorContent() {
   const isGenerating = assessment.status === "generating" || generating;
   const isFailed = assessment.status === "failed";
   const isReady = assessment.status === "ready" && exercises.length > 0;
-  const [audioBusyIds, setAudioBusyIds] = useState<Set<string>>(() => new Set());
-  const setAudioBusy = (exId: string, busy: boolean) => {
-    setAudioBusyIds((prev) => {
-      const next = new Set(prev);
-      if (busy) next.add(exId);
-      else next.delete(exId);
-      return next;
-    });
-  };
   const audioInFlight = audioBusyIds.size > 0;
 
   return (
