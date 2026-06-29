@@ -618,5 +618,5 @@ function WorkflowStepper({
   );
 }
 
-type ReactNodeBadge = { icon: React.ReactNode; label: string };
+type ReactNodeBadge = { icon: ReactNode; label: string };
 
