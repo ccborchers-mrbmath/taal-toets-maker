@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, ImageIcon, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Download, FileText, ImageIcon, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { useT } from "@/lib/i18n";
 import { generatePaper } from "@/lib/generate.functions";
 import { generateOptionImage } from "@/lib/images.functions";
+import { generatePaperPdf } from "@/lib/pdf.functions";
+
+type PdfKind = "paper" | "mark_scheme" | "transcript";
+
+function downloadBase64Pdf(filename: string, base64: string) {
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 export const Route = createFileRoute("/assessments/$id")({
   head: () => ({ meta: [{ title: "Vraestel — Luister Lab" }] }),
@@ -139,6 +157,11 @@ function EditorContent() {
               <Button variant="outline" size="sm" onClick={() => setShowTranscript((s) => !s)}>
                 {showTranscript ? (locale === "af" ? "Versteek transkripsie" : "Hide transcript") : t("editor.transcript")}
               </Button>
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                <PdfButton id={id} kind="paper" label={locale === "af" ? "Vraestel PDF" : "Question paper PDF"} />
+                <PdfButton id={id} kind="mark_scheme" label={locale === "af" ? "Memorandum PDF" : "Mark scheme PDF"} />
+                <PdfButton id={id} kind="transcript" label={locale === "af" ? "Transkripsie PDF" : "Transcript PDF"} />
+              </div>
             </>
           )}
         </div>
@@ -374,5 +397,35 @@ function ExerciseBlock({
         </div>
       )}
     </section>
+  );
+}
+
+function PdfButton({ id, kind, label }: { id: string; kind: PdfKind; label: string }) {
+  const { locale } = useT();
+  const [busy, setBusy] = useState(false);
+  async function run() {
+    setBusy(true);
+    try {
+      const res = await generatePaperPdf({ data: { assessment_id: id, kind } });
+      downloadBase64Pdf(res.filename, res.base64);
+    } catch (err) {
+      toast.error(locale === "af" ? "PDF misluk" : "PDF failed", {
+        description: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Button variant="outline" size="sm" onClick={run} disabled={busy}>
+      {busy ? (
+        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+      ) : kind === "paper" ? (
+        <Download className="mr-1.5 h-3.5 w-3.5" />
+      ) : (
+        <FileText className="mr-1.5 h-3.5 w-3.5" />
+      )}
+      {label}
+    </Button>
   );
 }
