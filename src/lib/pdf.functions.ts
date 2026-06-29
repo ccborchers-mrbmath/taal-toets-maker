@@ -28,15 +28,48 @@ const STAMP_COL: Record<PdfKind, string> = {
 
 // pdf-lib standard fonts use WinAnsi (CP1252). Afrikaans letters (ê, ô, ë…)
 // fit, but checkmarks, smart quotes, em-dashes etc. do not — sanitize.
+// WinAnsi-encodable codepoints (CP1252). Anything outside this set will
+// crash pdf-lib's StandardFonts at draw time, so strip aggressively.
+const WINANSI_EXTRA = new Set<number>([
+  0x20ac, 0x201a, 0x0192, 0x201e, 0x2026, 0x2020, 0x2021, 0x02c6, 0x2030,
+  0x0160, 0x2039, 0x0152, 0x017d, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022,
+  0x2013, 0x2014, 0x02dc, 0x2122, 0x0161, 0x203a, 0x0153, 0x017e, 0x0178,
+]);
+
+function isWinAnsi(cp: number): boolean {
+  if (cp >= 0x20 && cp <= 0x7e) return true;
+  if (cp >= 0xa0 && cp <= 0xff) return true;
+  return WINANSI_EXTRA.has(cp);
+}
+
 function sanitize(s: string): string {
-  return s
+  const pre = (s ?? "")
     .replace(/[\u2018\u2019\u201A\u201B]/g, "'")
     .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
     .replace(/[\u2013\u2014]/g, "-")
     .replace(/\u2026/g, "...")
     .replace(/\u2713|\u2714/g, "v")
     .replace(/\u00A0/g, " ")
-    .replace(/[\u200B-\u200D\uFEFF]/g, "");
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/[\r\t]/g, " ")
+    .replace(/\n+/g, " ");
+  const normalized = pre.normalize("NFC");
+  let out = "";
+  for (const ch of normalized) {
+    const cp = ch.codePointAt(0)!;
+    if (isWinAnsi(cp)) {
+      out += ch;
+      continue;
+    }
+    // Decomposed fallback (e.g. ŝ -> s) — drop combining marks.
+    const decomposed = ch.normalize("NFKD");
+    for (const dch of decomposed) {
+      const dcp = dch.codePointAt(0)!;
+      if (dcp >= 0x0300 && dcp <= 0x036f) continue;
+      if (isWinAnsi(dcp)) out += dch;
+    }
+  }
+  return out;
 }
 
 type FullPaper = {
