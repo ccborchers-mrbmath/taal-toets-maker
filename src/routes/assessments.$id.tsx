@@ -80,7 +80,7 @@ function EditorContent() {
       if (!a) return null;
       const { data: exs, error: exErr } = await supabase
         .from("exercises")
-        .select("id,number,kind,rubric,intro,statements,questions(id,number,stem,correct_letter,speaker_index,question_options(id,letter,text,image_prompt,image_url)),listening_scripts(sequence,speaker_label,transcript)")
+        .select("id,number,kind,rubric,intro,statements,audio_url,voice_map,questions(id,number,stem,correct_letter,speaker_index,question_options(id,letter,text,image_prompt,image_url)),listening_scripts(sequence,speaker_label,transcript)")
         .eq("assessment_id", id)
         .order("number");
       if (exErr) throw exErr;
