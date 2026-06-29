@@ -190,11 +190,74 @@ function ExerciseBlock({
   const { locale } = useT();
   const statements = Array.isArray(ex.statements) ? (ex.statements as { letter: string; text: string }[]) : null;
 
+  const [pending, setPending] = useState<Record<string, boolean>>({});
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const [batching, setBatching] = useState(false);
+
+  const optionsWithPrompts = ex.questions.flatMap((q) =>
+    q.question_options.filter((o) => o.image_prompt),
+  );
+  const totalNeedingImages = optionsWithPrompts.length;
+  const missing = optionsWithPrompts.filter(
+    (o) => !(urls[o.id] ?? o.image_url),
+  );
+
+  async function genOne(optionId: string) {
+    setPending((p) => ({ ...p, [optionId]: true }));
+    try {
+      const res = await generateOptionImage({ data: { option_id: optionId } });
+      setUrls((u) => ({ ...u, [optionId]: res.image_url }));
+    } catch (err) {
+      toast.error(locale === "af" ? "Beeld misluk" : "Image failed", {
+        description: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setPending((p) => ({ ...p, [optionId]: false }));
+    }
+  }
+
+  async function genAll() {
+    setBatching(true);
+    try {
+      for (const o of missing) {
+        // sequential — keeps rate limits and per-image cost predictable
+        // eslint-disable-next-line no-await-in-loop
+        await genOne(o.id);
+      }
+      toast.success(locale === "af" ? "Beelde gegenereer" : "Images generated");
+    } finally {
+      setBatching(false);
+    }
+  }
+
   return (
     <section className="border-t border-border pt-6">
-      <h2 className="font-display text-lg font-semibold">
-        {locale === "af" ? "Oefening" : "Exercise"} {ex.number}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-lg font-semibold">
+          {locale === "af" ? "Oefening" : "Exercise"} {ex.number}
+        </h2>
+        {totalNeedingImages > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={genAll}
+            disabled={batching || missing.length === 0}
+          >
+            {batching ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <ImageIcon className="mr-1.5 h-3.5 w-3.5" />
+            )}
+            {missing.length === 0
+              ? locale === "af"
+                ? "Alle beelde gereed"
+                : "All images ready"
+              : locale === "af"
+              ? `Genereer beelde (${missing.length}/${totalNeedingImages})`
+              : `Generate images (${missing.length}/${totalNeedingImages})`}
+          </Button>
+        )}
+      </div>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{ex.rubric}</p>
 
       {statements && (
@@ -220,18 +283,72 @@ function ExerciseBlock({
               )}
             </div>
             {q.question_options.length > 0 && (
-              <ul className="mt-3 grid gap-1.5 text-sm sm:grid-cols-2">
+              <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {q.question_options
                   .slice()
                   .sort((a, b) => a.letter.localeCompare(b.letter))
-                  .map((o) => (
-                    <li key={o.letter} className="flex items-start gap-2">
-                      <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border border-border text-[11px] font-mono">
-                        {o.letter}
-                      </span>
-                      <span>{o.text ?? (o.image_prompt ? `🖼 ${o.image_prompt}` : "—")}</span>
-                    </li>
-                  ))}
+                  .map((o) => {
+                    const url = urls[o.id] ?? o.image_url;
+                    const busy = !!pending[o.id];
+                    return (
+                      <li key={o.letter} className="rounded-md border border-border p-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border border-border text-[11px] font-mono">
+                            {o.letter}
+                          </span>
+                          <span className="truncate">{o.text ?? o.image_prompt ?? "—"}</span>
+                        </div>
+                        {o.image_prompt && (
+                          <div className="mt-2">
+                            {url ? (
+                              <img
+                                src={url}
+                                alt={o.image_prompt}
+                                className="aspect-square w-full rounded border border-border object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded border border-dashed border-border bg-muted/30 p-2 text-center text-xs text-muted-foreground">
+                                <ImageIcon className="h-4 w-4" />
+                                <span className="line-clamp-3">{o.image_prompt}</span>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="mt-1 h-7 px-2 text-xs"
+                                  onClick={() => genOne(o.id)}
+                                  disabled={busy || batching}
+                                >
+                                  {busy ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : locale === "af" ? (
+                                    "Genereer"
+                                  ) : (
+                                    "Generate"
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                            {url && (
+                              <button
+                                type="button"
+                                onClick={() => genOne(o.id)}
+                                disabled={busy || batching}
+                                className="mt-1 w-full text-[11px] text-muted-foreground hover:text-foreground"
+                              >
+                                {busy
+                                  ? locale === "af"
+                                    ? "Genereer..."
+                                    : "Generating..."
+                                  : locale === "af"
+                                  ? "Herskep"
+                                  : "Regenerate"}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
               </ul>
             )}
           </li>
