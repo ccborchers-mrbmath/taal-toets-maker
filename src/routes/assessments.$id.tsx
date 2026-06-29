@@ -212,9 +212,10 @@ function EditorContent() {
               </h2>
               <p className="mt-1 text-xs text-muted-foreground">
                 {locale === "af"
-                  ? "Laai die vraestel, memorandum en transkripsie af as PDF."
-                  : "Download the question paper, mark scheme and transcript as PDF."}
+                  ? "Laai die vraestel, memorandum, transkripsie en volledige luister-MP3 af."
+                  : "Download the question paper, mark scheme, transcript and full listening MP3."}
               </p>
+
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <PdfButton id={id} kind="paper" label={locale === "af" ? "Vraestel PDF" : "Question paper PDF"} cached={!!assessment.paper_pdf_path} onChange={() => query.refetch()} />
                 <PdfButton id={id} kind="mark_scheme" label={locale === "af" ? "Memorandum PDF" : "Mark scheme PDF"} cached={!!assessment.mark_scheme_pdf_path} onChange={() => query.refetch()} />
