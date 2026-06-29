@@ -147,6 +147,20 @@ function NewAssessmentForm() {
         .single();
       if (error) throw error;
 
+      // Persist the cast selection for this paper (server-validated against
+      // the user's own library). Generation reads this to write only roles
+      // the cast can fill.
+      if (castIds.size > 0) {
+        try {
+          await setAssessmentCast({
+            data: { assessment_id: created.id, voice_cast_ids: [...castIds] },
+          });
+        } catch (err) {
+          console.warn("Voice cast not saved", err);
+        }
+      }
+
+
       toast.message(locale === "af" ? "Vraestel word geskep…" : "Generating paper…");
       navigate({ to: "/assessments/$id", params: { id: created.id } });
 
