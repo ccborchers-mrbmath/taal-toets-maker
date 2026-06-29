@@ -79,6 +79,7 @@ const en: Dict = {
   "app.tagline": "IGCSE Afrikaans 0548 Paper Generator",
   "nav.library": "Library",
   "nav.shop": "Shop",
+  "nav.voices": "Voices",
   "nav.new": "New Paper",
   "nav.pricing": "Pricing",
   "nav.terms": "Terms",
