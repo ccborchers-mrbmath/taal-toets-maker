@@ -511,7 +511,7 @@ export const generatePaperPdf = createServerFn({ method: "POST" })
     const { data: exsRaw, error: exErr } = await supabase
       .from("exercises")
       .select(
-        "id,number,kind,rubric,statements,questions(id,number,stem,correct_letter,speaker_index,question_options(id,letter,text,image_prompt)),listening_scripts(sequence,speaker_label,transcript)",
+        "id,number,kind,rubric,statements,questions(id,number,stem,correct_letter,speaker_index,question_options(id,letter,text,image_prompt)),listening_scripts(sequence,speaker_label,transcript,item_index)",
       )
       .eq("assessment_id", data.assessment_id)
       .order("number");
