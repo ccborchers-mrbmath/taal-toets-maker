@@ -369,12 +369,21 @@ function renderTranscript(ctx: Ctx, p: FullPaper) {
 // Storage image fetcher
 // ---------------------------------------------------------------------------
 
+type StorageBucket = {
+  download: (path: string) => Promise<{ data: Blob | null; error: { message: string } | null }>;
+  upload: (
+    path: string,
+    body: Uint8Array,
+    opts?: { upsert?: boolean; contentType?: string },
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  createSignedUrl: (
+    path: string,
+    expiresIn: number,
+    opts?: { download?: string | boolean },
+  ) => Promise<{ data: { signedUrl: string } | null; error: { message: string } | null }>;
+};
 type SupabaseAdminLike = {
-  storage: {
-    from: (bucket: string) => {
-      download: (path: string) => Promise<{ data: Blob | null; error: { message: string } | null }>;
-    };
-  };
+  storage: { from: (bucket: string) => StorageBucket };
 };
 
 async function tryDownloadOptionImage(
