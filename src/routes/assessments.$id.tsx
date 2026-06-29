@@ -399,3 +399,33 @@ function ExerciseBlock({
     </section>
   );
 }
+
+function PdfButton({ id, kind, label }: { id: string; kind: PdfKind; label: string }) {
+  const { locale } = useT();
+  const [busy, setBusy] = useState(false);
+  async function run() {
+    setBusy(true);
+    try {
+      const res = await generatePaperPdf({ data: { assessment_id: id, kind } });
+      downloadBase64Pdf(res.filename, res.base64);
+    } catch (err) {
+      toast.error(locale === "af" ? "PDF misluk" : "PDF failed", {
+        description: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Button variant="outline" size="sm" onClick={run} disabled={busy}>
+      {busy ? (
+        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+      ) : kind === "paper" ? (
+        <Download className="mr-1.5 h-3.5 w-3.5" />
+      ) : (
+        <FileText className="mr-1.5 h-3.5 w-3.5" />
+      )}
+      {label}
+    </Button>
+  );
+}
