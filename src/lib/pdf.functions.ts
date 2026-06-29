@@ -416,12 +416,55 @@ export const generatePaperPdf = createServerFn({ method: "POST" })
 
     const { data: aRaw, error: aErr } = await supabase
       .from("assessments")
-      .select("id,title,paper_code,level,status")
+      .select("id,title,paper_code,level,status,paper_pdf_path,mark_scheme_pdf_path,transcript_pdf_path")
       .eq("id", data.assessment_id)
       .maybeSingle();
     if (aErr) throw new Error(aErr.message);
     if (!aRaw) throw new Error("Assessment not found");
-    const a = aRaw as FullPaper["assessment"];
+    const aFull = aRaw as FullPaper["assessment"] & {
+      paper_pdf_path: string | null;
+      mark_scheme_pdf_path: string | null;
+      transcript_pdf_path: string | null;
+    };
+    const a = aFull as FullPaper["assessment"];
+
+    const safeTitle = aFull.title.replace(/[^\w\-]+/g, "_").slice(0, 60);
+    const suffix = { paper: "vraestel", mark_scheme: "memorandum", transcript: "transkripsie" }[data.kind];
+    const filename = `${safeTitle}_${suffix}.pdf`;
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const admin = supabaseAdmin as unknown as SupabaseAdminLike & {
+      storage: SupabaseAdminLike["storage"] & {
+        from: (b: string) => {
+          download: (p: string) => Promise<{ data: Blob | null; error: { message: string } | null }>;
+          upload: (
+            p: string,
+            body: Uint8Array,
+            opts?: { upsert?: boolean; contentType?: string },
+          ) => Promise<{ data: unknown; error: { message: string } | null }>;
+          createSignedUrl: (
+            p: string,
+            expiresIn: number,
+            opts?: { download?: string | boolean },
+          ) => Promise<{ data: { signedUrl: string } | null; error: { message: string } | null }>;
+        };
+      };
+      from: (t: string) => {
+        update: (v: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<{ error: { message: string } | null }> };
+      };
+    };
+
+    // Cache hit: return signed URL without regenerating.
+    const cachedPath = aFull[PATH_COL[data.kind]];
+    if (!data.force && cachedPath) {
+      const { data: signed, error: sErr } = await admin.storage
+        .from("paper-pdfs")
+        .createSignedUrl(cachedPath, 60 * 60, { download: filename });
+      if (!sErr && signed?.signedUrl) {
+        return { filename, mime: "application/pdf", download_url: signed.signedUrl, cached: true };
+      }
+      // fall through and regenerate if signed URL failed
+    }
 
     const { data: exsRaw, error: exErr } = await supabase
       .from("exercises")
@@ -464,8 +507,7 @@ export const generatePaperPdf = createServerFn({ method: "POST" })
     await renderCover(ctx, a, kindLabel[data.kind]);
 
     if (data.kind === "paper") {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      await renderPaper(ctx, paper, supabaseAdmin as unknown as SupabaseAdminLike);
+      await renderPaper(ctx, paper, admin as unknown as SupabaseAdminLike);
     } else if (data.kind === "mark_scheme") {
       renderMarkScheme(ctx, paper);
     } else {
@@ -473,16 +515,24 @@ export const generatePaperPdf = createServerFn({ method: "POST" })
     }
 
     const bytes = await doc.save();
-    // base64 for JSON transport
-    let bin = "";
-    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-    const base64 = btoa(bin);
 
-    const safeTitle = a.title.replace(/[^\w\-]+/g, "_").slice(0, 60);
-    const suffix = { paper: "vraestel", mark_scheme: "memorandum", transcript: "transkripsie" }[data.kind];
-    return {
-      filename: `${safeTitle}_${suffix}.pdf`,
-      mime: "application/pdf",
-      base64,
-    };
+    // Upload to storage so the user can re-download without regenerating.
+    const storagePath = `${a.id}/${data.kind}.pdf`;
+    const { error: upErr } = await admin.storage
+      .from("paper-pdfs")
+      .upload(storagePath, bytes, { upsert: true, contentType: "application/pdf" });
+    if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
+
+    const { error: updErr } = await admin
+      .from("assessments")
+      .update({ [PATH_COL[data.kind]]: storagePath, [STAMP_COL[data.kind]]: new Date().toISOString() })
+      .eq("id", a.id);
+    if (updErr) throw new Error(updErr.message);
+
+    const { data: signed, error: sErr } = await admin.storage
+      .from("paper-pdfs")
+      .createSignedUrl(storagePath, 60 * 60, { download: filename });
+    if (sErr || !signed?.signedUrl) throw new Error(sErr?.message ?? "Signed URL failed");
+
+    return { filename, mime: "application/pdf", download_url: signed.signedUrl, cached: false };
   });
