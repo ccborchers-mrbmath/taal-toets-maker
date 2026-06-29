@@ -51,7 +51,7 @@ type FullPaper = {
     id: string; number: number; kind: string; rubric: string;
     intro: string | null; statements: unknown;
     audio_url: string | null;
-    voice_map: Record<string, { id: string; name: string }> | null;
+    voice_map: Record<string, unknown> | null;
     questions: {
       id: string; number: number; stem: string; correct_letter: string;
       speaker_index: number | null;
