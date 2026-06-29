@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, ImageIcon, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Download, FileText, ImageIcon, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { useT } from "@/lib/i18n";
 import { generatePaper } from "@/lib/generate.functions";
 import { generateOptionImage } from "@/lib/images.functions";
+import { generatePaperPdf } from "@/lib/pdf.functions";
+
+type PdfKind = "paper" | "mark_scheme" | "transcript";
+
+function downloadBase64Pdf(filename: string, base64: string) {
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 export const Route = createFileRoute("/assessments/$id")({
   head: () => ({ meta: [{ title: "Vraestel — Luister Lab" }] }),
