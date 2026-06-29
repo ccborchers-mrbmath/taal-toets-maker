@@ -526,7 +526,7 @@ function PdfButton({
 }
 
 
-function AudioBlock({ ex, onGenerated }: { ex: FullPaper["exercises"][number]; onGenerated?: () => void }) {
+function AudioBlock({ ex, onGenerated, onBusyChange }: { ex: FullPaper["exercises"][number]; onGenerated?: () => void; onBusyChange?: (busy: boolean) => void }) {
   const { locale } = useT();
   const t = (af: string, en: string) => (locale === "af" ? af : en);
   const [busy, setBusy] = useState(false);
