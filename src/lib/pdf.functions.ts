@@ -834,7 +834,9 @@ export const generatePaperPdf = createServerFn({ method: "POST" })
       },
     };
     drawPageHeader(ctx);
-    await renderCover(ctx, a, kindLabel[data.kind]);
+    if (data.kind !== "transcript") {
+      await renderCover(ctx, a, kindLabel[data.kind]);
+    }
 
     if (data.kind === "paper") {
       await renderPaper(ctx, paper, admin as unknown as SupabaseAdminLike);
