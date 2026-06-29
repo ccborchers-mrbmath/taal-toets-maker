@@ -263,7 +263,7 @@ function ExerciseBlock({
   }
 
   return (
-    <section className="border-t border-border pt-6">
+    <section id={`exercise-${ex.number}`} className="border-t border-border pt-6 scroll-mt-20">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-lg font-semibold">
           {locale === "af" ? "Oefening" : "Exercise"} {ex.number}
