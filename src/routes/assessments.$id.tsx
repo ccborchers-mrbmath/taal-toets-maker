@@ -11,6 +11,8 @@ import { generatePaper } from "@/lib/generate.functions";
 import { generateOptionImage } from "@/lib/images.functions";
 import { generatePaperPdf } from "@/lib/pdf.functions";
 import { generateExerciseAudio, refreshExerciseAudioUrl } from "@/lib/audio.functions";
+import { generateFullPaperAudio } from "@/lib/full-audio.functions";
+
 
 type PdfKind = "paper" | "mark_scheme" | "transcript";
 
@@ -44,7 +46,9 @@ type FullPaper = {
     paper_pdf_path: string | null;
     mark_scheme_pdf_path: string | null;
     transcript_pdf_path: string | null;
+    full_audio_path: string | null;
   };
+
   exercises: {
     id: string; number: number; kind: string; rubric: string;
     intro: string | null; statements: unknown;
@@ -71,7 +75,7 @@ function EditorContent() {
     queryFn: async () => {
       const { data: a, error } = await supabase
         .from("assessments")
-        .select("id,title,paper_code,status,level,part_type,generation_error,paper_pdf_path,mark_scheme_pdf_path,transcript_pdf_path")
+        .select("id,title,paper_code,status,level,part_type,generation_error,paper_pdf_path,mark_scheme_pdf_path,transcript_pdf_path,full_audio_path")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -208,14 +212,22 @@ function EditorContent() {
               </h2>
               <p className="mt-1 text-xs text-muted-foreground">
                 {locale === "af"
-                  ? "Laai die vraestel, memorandum en transkripsie af as PDF."
-                  : "Download the question paper, mark scheme and transcript as PDF."}
+                  ? "Laai die vraestel, memorandum, transkripsie en volledige luister-MP3 af."
+                  : "Download the question paper, mark scheme, transcript and full listening MP3."}
               </p>
+
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <PdfButton id={id} kind="paper" label={locale === "af" ? "Vraestel PDF" : "Question paper PDF"} cached={!!assessment.paper_pdf_path} onChange={() => query.refetch()} />
                 <PdfButton id={id} kind="mark_scheme" label={locale === "af" ? "Memorandum PDF" : "Mark scheme PDF"} cached={!!assessment.mark_scheme_pdf_path} onChange={() => query.refetch()} />
                 <PdfButton id={id} kind="transcript" label={locale === "af" ? "Transkripsie PDF" : "Transcript PDF"} cached={!!assessment.transcript_pdf_path} onChange={() => query.refetch()} />
+                <FullAudioButton
+                  id={id}
+                  cached={!!assessment.full_audio_path}
+                  ready={exercises.every((e) => !!e.audio_url)}
+                  onChange={() => query.refetch()}
+                />
               </div>
+
             </section>
           </div>
         )}
@@ -872,4 +884,77 @@ function WorkflowStepper({
 }
 
 type ReactNodeBadge = { icon: ReactNode; label: string };
+
+function FullAudioButton({
+  id,
+  cached,
+  ready,
+  onChange,
+}: {
+  id: string;
+  cached: boolean;
+  ready: boolean;
+  onChange: () => void;
+}) {
+  const { locale } = useT();
+  const [busy, setBusy] = useState<false | "download" | "regen">(false);
+  async function run(force: boolean) {
+    setBusy(force ? "regen" : "download");
+    try {
+      const res = await generateFullPaperAudio({ data: { assessment_id: id, force } });
+      triggerDownload(res.download_url, res.filename);
+      if (!res.cached) onChange();
+      if (force) toast.success(locale === "af" ? "Klank herskep" : "Audio regenerated");
+    } catch (err) {
+      toast.error(locale === "af" ? "Klank misluk" : "Audio failed", {
+        description: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+  const label = locale === "af" ? "Volledige klank" : "Full audio";
+  const disabled = !!busy || (!cached && !ready);
+  const title = !ready && !cached
+    ? locale === "af"
+      ? "Genereer eers klank vir alle oefeninge"
+      : "Generate audio for all exercises first"
+    : cached
+    ? locale === "af" ? "Laai bestaande MP3 af" : "Download existing MP3"
+    : undefined;
+  return (
+    <div className="inline-flex items-center">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => run(false)}
+        disabled={disabled}
+        className={cached ? "rounded-r-none border-r-0" : ""}
+        title={title}
+      >
+        {busy === "download" ? (
+          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+        ) : cached ? (
+          <Download className="mr-1.5 h-3.5 w-3.5" />
+        ) : (
+          <Headphones className="mr-1.5 h-3.5 w-3.5" />
+        )}
+        {cached ? (locale === "af" ? `Laai ${label} af` : `Download ${label}`) : label}
+      </Button>
+      {cached && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => run(true)}
+          disabled={!!busy}
+          className="rounded-l-none px-2"
+          title={locale === "af" ? "Herskep klank" : "Regenerate audio"}
+        >
+          {busy === "regen" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 

@@ -1,0 +1,1 @@
+ALTER TABLE public.assessments ADD COLUMN IF NOT EXISTS full_audio_path TEXT, ADD COLUMN IF NOT EXISTS full_audio_generated_at TIMESTAMPTZ;
