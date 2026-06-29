@@ -295,6 +295,9 @@ function ExerciseBlock({
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{ex.rubric}</p>
 
+      <AudioBlock ex={ex} />
+
+
       {statements && (
         <ol className="mt-4 grid gap-1 rounded-md border border-border bg-muted/30 p-4 text-sm sm:grid-cols-2">
           {statements.map((s) => (
