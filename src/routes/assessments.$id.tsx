@@ -492,7 +492,15 @@ function WorkflowStepper({
     ? "active"
     : "pending";
 
-  const audioState: StepState = "locked"; // not yet built
+  const totalAudio = isReady ? exercises.length : 0;
+  const doneAudio = isReady ? exercises.filter((e) => !!e.audio_url).length : 0;
+  const audioState: StepState = !isReady
+    ? "locked"
+    : doneAudio === 0
+    ? "pending"
+    : doneAudio === totalAudio
+    ? "done"
+    : "active";
   const pdfState: StepState = !isReady ? "locked" : "pending";
 
   const steps: Array<{
