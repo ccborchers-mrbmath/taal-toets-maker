@@ -252,7 +252,7 @@ export const setExerciseVoiceOverride = createServerFn({ method: "POST" })
     map[data.label] = data.voice_cast_id;
     const { error: upErr } = await supabase
       .from("exercises")
-      .update({ voice_map: map, audio_url: null })
+      .update({ voice_map: map as never, audio_url: null })
       .eq("id", data.exercise_id);
     if (upErr) throw new Error(upErr.message);
     return { ok: true };
