@@ -59,13 +59,19 @@ export type Database = {
           generation_error: string | null
           id: string
           level: string
+          mark_scheme_pdf_generated_at: string | null
+          mark_scheme_pdf_path: string | null
           paper_code: string
           paper_name: string
+          paper_pdf_generated_at: string | null
+          paper_pdf_path: string | null
           part_type: string
           status: string
           subject_code: string
           theme_hint: string | null
           title: string
+          transcript_pdf_generated_at: string | null
+          transcript_pdf_path: string | null
           updated_at: string
         }
         Insert: {
@@ -76,13 +82,19 @@ export type Database = {
           generation_error?: string | null
           id?: string
           level?: string
+          mark_scheme_pdf_generated_at?: string | null
+          mark_scheme_pdf_path?: string | null
           paper_code?: string
           paper_name?: string
+          paper_pdf_generated_at?: string | null
+          paper_pdf_path?: string | null
           part_type?: string
           status?: string
           subject_code?: string
           theme_hint?: string | null
           title: string
+          transcript_pdf_generated_at?: string | null
+          transcript_pdf_path?: string | null
           updated_at?: string
         }
         Update: {
@@ -93,13 +105,19 @@ export type Database = {
           generation_error?: string | null
           id?: string
           level?: string
+          mark_scheme_pdf_generated_at?: string | null
+          mark_scheme_pdf_path?: string | null
           paper_code?: string
           paper_name?: string
+          paper_pdf_generated_at?: string | null
+          paper_pdf_path?: string | null
           part_type?: string
           status?: string
           subject_code?: string
           theme_hint?: string | null
           title?: string
+          transcript_pdf_generated_at?: string | null
+          transcript_pdf_path?: string | null
           updated_at?: string
         }
         Relationships: []
