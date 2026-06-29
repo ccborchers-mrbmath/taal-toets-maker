@@ -167,13 +167,9 @@ function EditorContent() {
               <Button variant="outline" size="sm" onClick={() => setShowTranscript((s) => !s)}>
                 {showTranscript ? (locale === "af" ? "Versteek transkripsie" : "Hide transcript") : t("editor.transcript")}
               </Button>
-              <div id="export-bar" className="ml-auto flex flex-wrap items-center gap-2">
-                <PdfButton id={id} kind="paper" label={locale === "af" ? "Vraestel PDF" : "Question paper PDF"} cached={!!assessment.paper_pdf_path} onChange={() => query.refetch()} />
-                <PdfButton id={id} kind="mark_scheme" label={locale === "af" ? "Memorandum PDF" : "Mark scheme PDF"} cached={!!assessment.mark_scheme_pdf_path} onChange={() => query.refetch()} />
-                <PdfButton id={id} kind="transcript" label={locale === "af" ? "Transkripsie PDF" : "Transcript PDF"} cached={!!assessment.transcript_pdf_path} onChange={() => query.refetch()} />
-              </div>
             </>
           )}
+
         </div>
 
         {isFailed && assessment.generation_error && (
@@ -202,10 +198,28 @@ function EditorContent() {
                 ex={ex}
                 showMarks={showMarks}
                 showTranscript={showTranscript}
+                onAudioGenerated={() => query.refetch()}
               />
             ))}
+
+            <section id="exports" className="border-t border-border pt-6 scroll-mt-20">
+              <h2 className="font-display text-lg font-semibold">
+                {locale === "af" ? "Uitvoere" : "Exports"}
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {locale === "af"
+                  ? "Laai die vraestel, memorandum en transkripsie af as PDF."
+                  : "Download the question paper, mark scheme and transcript as PDF."}
+              </p>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <PdfButton id={id} kind="paper" label={locale === "af" ? "Vraestel PDF" : "Question paper PDF"} cached={!!assessment.paper_pdf_path} onChange={() => query.refetch()} />
+                <PdfButton id={id} kind="mark_scheme" label={locale === "af" ? "Memorandum PDF" : "Mark scheme PDF"} cached={!!assessment.mark_scheme_pdf_path} onChange={() => query.refetch()} />
+                <PdfButton id={id} kind="transcript" label={locale === "af" ? "Transkripsie PDF" : "Transcript PDF"} cached={!!assessment.transcript_pdf_path} onChange={() => query.refetch()} />
+              </div>
+            </section>
           </div>
         )}
+
       </div>
     </div>
   );
@@ -215,11 +229,14 @@ function ExerciseBlock({
   ex,
   showMarks,
   showTranscript,
+  onAudioGenerated,
 }: {
   ex: FullPaper["exercises"][number];
   showMarks: boolean;
   showTranscript: boolean;
+  onAudioGenerated?: () => void;
 }) {
+
   const { locale } = useT();
   const statements = Array.isArray(ex.statements) ? (ex.statements as { letter: string; text: string }[]) : null;
 
@@ -293,7 +310,7 @@ function ExerciseBlock({
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{ex.rubric}</p>
 
-      <AudioBlock ex={ex} />
+      <AudioBlock ex={ex} onGenerated={onAudioGenerated} />
 
 
       {statements && (
@@ -483,7 +500,7 @@ function PdfButton({
 }
 
 
-function AudioBlock({ ex }: { ex: FullPaper["exercises"][number] }) {
+function AudioBlock({ ex, onGenerated }: { ex: FullPaper["exercises"][number]; onGenerated?: () => void }) {
   const { locale } = useT();
   const t = (af: string, en: string) => (locale === "af" ? af : en);
   const [busy, setBusy] = useState(false);
@@ -525,6 +542,8 @@ function AudioBlock({ ex }: { ex: FullPaper["exercises"][number] }) {
       const res = await generateExerciseAudio({ data: { exercise_id: ex.id } });
       setUrl(res.audio_url);
       toast.success(t("Klank gegenereer", "Audio generated"));
+      onGenerated?.();
+
     } catch (err) {
       toast.error(t("Klank misluk", "Audio failed"), {
         description: err instanceof Error ? err.message : String(err),
@@ -794,8 +813,9 @@ function WorkflowStepper({
           ? {
               label: t("Spring na uitvoere", "Jump to exports"),
               onClick: () => {
-                const el = document.getElementById("export-bar");
+                const el = document.getElementById("exports");
                 el?.scrollIntoView({ behavior: "smooth", block: "start" });
+
               },
             }
           : undefined,
