@@ -116,30 +116,36 @@ export type Database = {
       exercises: {
         Row: {
           assessment_id: string
+          audio_url: string | null
           id: string
           intro: string | null
           kind: string
           number: number
           rubric: string
           statements: Json | null
+          voice_map: Json | null
         }
         Insert: {
           assessment_id: string
+          audio_url?: string | null
           id?: string
           intro?: string | null
           kind: string
           number: number
           rubric: string
           statements?: Json | null
+          voice_map?: Json | null
         }
         Update: {
           assessment_id?: string
+          audio_url?: string | null
           id?: string
           intro?: string | null
           kind?: string
           number?: number
           rubric?: string
           statements?: Json | null
+          voice_map?: Json | null
         }
         Relationships: [
           {
