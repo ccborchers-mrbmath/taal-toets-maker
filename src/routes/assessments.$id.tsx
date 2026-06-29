@@ -450,21 +450,42 @@ function AudioBlock({ ex }: { ex: FullPaper["exercises"][number] }) {
   const t = (af: string, en: string) => (locale === "af" ? af : en);
   const [busy, setBusy] = useState(false);
   const [url, setUrl] = useState<string | null>(ex.audio_url);
-  const [voiceMap, setVoiceMap] = useState<FullPaper["exercises"][number]["voice_map"]>(ex.voice_map);
+  const [voiceMap, setVoiceMap] = useState<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    const m = (ex.voice_map ?? {}) as Record<string, unknown>;
+    for (const [k, v] of Object.entries(m)) {
+      if (typeof v === "string") out[k] = v;
+      else if (v && typeof v === "object" && "id" in v && typeof (v as { id: unknown }).id === "string") {
+        out[k] = (v as { id: string }).id;
+      }
+    }
+    return out;
+  });
 
-  async function ensureFreshUrl(currentUrl: string | null) {
-    if (!currentUrl) return null;
-    // Storage signed URLs expire — refresh if a HEAD request fails. Cheap
-    // optimistic path: just try playing first and only refresh on error.
-    return currentUrl;
-  }
+  // Unique speaker labels actually present in the script.
+  const labels = Array.from(
+    new Set(
+      (ex.listening_scripts ?? [])
+        .map((r) => r.speaker_label?.trim() ?? "")
+        .filter((l) => l.length > 0),
+    ),
+  );
+
+  // The user's voice library (cached across all AudioBlocks).
+  const library = useQuery({
+    queryKey: ["voice-library"],
+    queryFn: async () => {
+      const { listMyVoices } = await import("@/lib/voice-cast.functions");
+      return await listMyVoices();
+    },
+    staleTime: 60_000,
+  });
 
   async function generate() {
     setBusy(true);
     try {
       const res = await generateExerciseAudio({ data: { exercise_id: ex.id } });
       setUrl(res.audio_url);
-      setVoiceMap(res.voice_map);
       toast.success(t("Klank gegenereer", "Audio generated"));
     } catch (err) {
       toast.error(t("Klank misluk", "Audio failed"), {
@@ -486,7 +507,21 @@ function AudioBlock({ ex }: { ex: FullPaper["exercises"][number] }) {
     }
   }
 
-  void ensureFreshUrl;
+  async function changeVoice(label: string, voiceCastId: string) {
+    const next = { ...voiceMap, [label]: voiceCastId };
+    setVoiceMap(next);
+    setUrl(null); // existing audio is now stale
+    try {
+      const { setExerciseVoiceOverride } = await import("@/lib/voice-cast.functions");
+      await setExerciseVoiceOverride({
+        data: { exercise_id: ex.id, label, voice_cast_id: voiceCastId },
+      });
+    } catch (err) {
+      toast.error(t("Toewysing misluk", "Cast change failed"), {
+        description: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 
   return (
     <div className="mt-4 rounded-md border border-border bg-muted/20 p-4">
@@ -520,6 +555,7 @@ function AudioBlock({ ex }: { ex: FullPaper["exercises"][number] }) {
           </Button>
         </div>
       </div>
+
       {url ? (
         <audio
           key={url}
@@ -527,10 +563,7 @@ function AudioBlock({ ex }: { ex: FullPaper["exercises"][number] }) {
           preload="none"
           className="mt-3 w-full"
           src={url}
-          onError={() => {
-            // Signed URL likely expired — silently refresh once.
-            void refresh();
-          }}
+          onError={() => void refresh()}
         >
           <track kind="captions" />
         </audio>
@@ -542,17 +575,35 @@ function AudioBlock({ ex }: { ex: FullPaper["exercises"][number] }) {
           )}
         </p>
       )}
-      {voiceMap && Object.keys(voiceMap).length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5 text-[11px]">
-          {Object.entries(voiceMap).map(([label, v]) => (
-            <span
-              key={label}
-              className="rounded border border-border bg-card px-1.5 py-0.5 font-mono"
-              title={`${label} → ${v.name}`}
-            >
-              {label} · {v.name}
-            </span>
-          ))}
+
+      {labels.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+            {t("Rolverdeling", "Casting")}
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {labels.map((label) => (
+              <label key={label} className="flex items-center gap-2 text-xs">
+                <span className="min-w-[80px] truncate font-mono">{label}</span>
+                <select
+                  className="flex-1 rounded border border-border bg-background px-2 py-1 text-xs"
+                  value={voiceMap[label] ?? ""}
+                  onChange={(e) => changeVoice(label, e.target.value)}
+                >
+                  <option value="">
+                    {t("— kies stem —", "— pick voice —")}
+                  </option>
+                  {(library.data ?? [])
+                    .filter((v) => v.active)
+                    .map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name} · {v.gender}/{v.age_band}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            ))}
+          </div>
         </div>
       )}
     </div>
