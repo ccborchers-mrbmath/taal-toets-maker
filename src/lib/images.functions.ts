@@ -66,7 +66,7 @@ export const generateOptionImage = createServerFn({ method: "POST" })
     if (!opt.image_prompt) throw new Error("This option has no image_prompt");
 
     const assessmentId = (opt as unknown as {
-      questions: { exercises: { assessment_id: string; assessments: { user_id: string } } };
+      questions: { exercises: { assessment_id: string } };
     }).questions.exercises.assessment_id;
 
     const png = await generatePngFromPrompt(opt.image_prompt);
