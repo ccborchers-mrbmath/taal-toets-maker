@@ -69,6 +69,15 @@ function EditorContent() {
   const [generating, setGenerating] = useState(false);
   const [showMarks, setShowMarks] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [audioBusyIds, setAudioBusyIds] = useState<Set<string>>(() => new Set());
+  const setAudioBusy = (exId: string, busy: boolean) => {
+    setAudioBusyIds((prev) => {
+      const next = new Set(prev);
+      if (busy) next.add(exId);
+      else next.delete(exId);
+      return next;
+    });
+  };
 
   const query = useQuery<FullPaper | null>({
     queryKey: ["assessment-full", id],
@@ -127,6 +136,7 @@ function EditorContent() {
   const isGenerating = assessment.status === "generating" || generating;
   const isFailed = assessment.status === "failed";
   const isReady = assessment.status === "ready" && exercises.length > 0;
+  const audioInFlight = audioBusyIds.size > 0;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
@@ -153,6 +163,7 @@ function EditorContent() {
           exercises={exercises}
           onGenerate={run}
           generating={isGenerating}
+          audioInFlight={audioInFlight}
         />
 
         {/* Action bar */}
@@ -203,6 +214,7 @@ function EditorContent() {
                 showMarks={showMarks}
                 showTranscript={showTranscript}
                 onAudioGenerated={() => query.refetch()}
+                onAudioBusyChange={(b) => setAudioBusy(ex.id, b)}
               />
             ))}
 
@@ -223,7 +235,7 @@ function EditorContent() {
                 <FullAudioButton
                   id={id}
                   cached={!!assessment.full_audio_path}
-                  ready={exercises.every((e) => !!e.audio_url)}
+                  ready={exercises.some((e) => !!e.audio_url) && !audioInFlight}
                   onChange={() => query.refetch()}
                 />
               </div>
@@ -242,11 +254,13 @@ function ExerciseBlock({
   showMarks,
   showTranscript,
   onAudioGenerated,
+  onAudioBusyChange,
 }: {
   ex: FullPaper["exercises"][number];
   showMarks: boolean;
   showTranscript: boolean;
   onAudioGenerated?: () => void;
+  onAudioBusyChange?: (busy: boolean) => void;
 }) {
 
   const { locale } = useT();
@@ -322,7 +336,7 @@ function ExerciseBlock({
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{ex.rubric}</p>
 
-      <AudioBlock ex={ex} onGenerated={onAudioGenerated} />
+      <AudioBlock ex={ex} onGenerated={onAudioGenerated} onBusyChange={onAudioBusyChange} />
 
 
       {statements && (
@@ -512,7 +526,7 @@ function PdfButton({
 }
 
 
-function AudioBlock({ ex, onGenerated }: { ex: FullPaper["exercises"][number]; onGenerated?: () => void }) {
+function AudioBlock({ ex, onGenerated, onBusyChange }: { ex: FullPaper["exercises"][number]; onGenerated?: () => void; onBusyChange?: (busy: boolean) => void }) {
   const { locale } = useT();
   const t = (af: string, en: string) => (locale === "af" ? af : en);
   const [busy, setBusy] = useState(false);
@@ -550,6 +564,7 @@ function AudioBlock({ ex, onGenerated }: { ex: FullPaper["exercises"][number]; o
 
   async function generate() {
     setBusy(true);
+    onBusyChange?.(true);
     try {
       const res = await generateExerciseAudio({ data: { exercise_id: ex.id } });
       setUrl(res.audio_url);
@@ -562,6 +577,7 @@ function AudioBlock({ ex, onGenerated }: { ex: FullPaper["exercises"][number]; o
       });
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
 
@@ -687,12 +703,14 @@ function WorkflowStepper({
   exercises,
   onGenerate,
   generating,
+  audioInFlight,
 }: {
   locale: "af" | "en";
   status: string;
   exercises: FullPaper["exercises"];
   onGenerate: () => void;
   generating: boolean;
+  audioInFlight: boolean;
 }) {
   const isReady = status === "ready" && exercises.length > 0;
   const isFailed = status === "failed";
@@ -728,13 +746,16 @@ function WorkflowStepper({
 
   const totalAudio = isReady ? exercises.length : 0;
   const doneAudio = isReady ? exercises.filter((e) => !!e.audio_url).length : 0;
+  // "Active" only while a generation request is in flight. Once nothing is
+  // generating, any exercise that has audio counts as done — so partial papers
+  // (e.g. only Exercise 1) are treated as complete and exports are enabled.
   const audioState: StepState = !isReady
     ? "locked"
-    : doneAudio === 0
-    ? "pending"
-    : doneAudio === totalAudio
+    : audioInFlight
+    ? "active"
+    : doneAudio > 0
     ? "done"
-    : "active";
+    : "pending";
   const pdfState: StepState = !isReady ? "locked" : "pending";
 
   const steps: Array<{

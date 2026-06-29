@@ -49,7 +49,6 @@ export const generateFullPaperAudio = createServerFn({ method: "POST" })
     if (eErr) throw new Error(eErr.message);
     if (!exs || exs.length === 0) throw new Error("No exercises on this paper");
 
-    const missing = [] as number[];
     const bufs: Uint8Array[] = [];
     for (const ex of exs) {
       const path = `${ex.assessment_id}/${ex.id}.mp3`;
@@ -58,16 +57,14 @@ export const generateFullPaperAudio = createServerFn({ method: "POST" })
         .from("exercise-audio")
         .download(path);
       if (dErr || !blob) {
-        missing.push(ex.number);
+        // Skip exercises without audio so partial papers can still be exported.
         continue;
       }
       // eslint-disable-next-line no-await-in-loop
       bufs.push(new Uint8Array(await blob.arrayBuffer()));
     }
-    if (missing.length > 0) {
-      throw new Error(
-        `Generate audio first for exercise(s): ${missing.join(", ")}.`,
-      );
+    if (bufs.length === 0) {
+      throw new Error("No exercise audio has been generated yet.");
     }
 
     const total = bufs.reduce((n, b) => n + b.length, 0);
