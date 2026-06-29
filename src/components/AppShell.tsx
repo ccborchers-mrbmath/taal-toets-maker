@@ -66,6 +66,7 @@ export function AppShell({ children, requireAuth = true }: AppShellProps) {
 
           <nav className="flex items-center gap-1">
             {navItem("/dashboard", t("nav.library"), LayoutGrid, true)}
+            {navItem("/voices", t("nav.voices"), Mic2)}
             {navItem("/shop", t("nav.shop"), Store)}
             {navItem("/assessments/new", t("nav.new"), Plus)}
           </nav>
