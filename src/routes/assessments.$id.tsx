@@ -229,11 +229,14 @@ function ExerciseBlock({
   ex,
   showMarks,
   showTranscript,
+  onAudioGenerated,
 }: {
   ex: FullPaper["exercises"][number];
   showMarks: boolean;
   showTranscript: boolean;
+  onAudioGenerated?: () => void;
 }) {
+
   const { locale } = useT();
   const statements = Array.isArray(ex.statements) ? (ex.statements as { letter: string; text: string }[]) : null;
 
