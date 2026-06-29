@@ -12,7 +12,19 @@ type PdfKind = "paper" | "mark_scheme" | "transcript";
 const Input = z.object({
   assessment_id: z.string().uuid(),
   kind: z.enum(["paper", "mark_scheme", "transcript"]),
+  force: z.boolean().optional(),
 });
+
+const PATH_COL: Record<PdfKind, "paper_pdf_path" | "mark_scheme_pdf_path" | "transcript_pdf_path"> = {
+  paper: "paper_pdf_path",
+  mark_scheme: "mark_scheme_pdf_path",
+  transcript: "transcript_pdf_path",
+};
+const STAMP_COL: Record<PdfKind, string> = {
+  paper: "paper_pdf_generated_at",
+  mark_scheme: "mark_scheme_pdf_generated_at",
+  transcript: "transcript_pdf_generated_at",
+};
 
 // pdf-lib standard fonts use WinAnsi (CP1252). Afrikaans letters (ê, ô, ë…)
 // fit, but checkmarks, smart quotes, em-dashes etc. do not — sanitize.
