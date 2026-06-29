@@ -813,8 +813,9 @@ function WorkflowStepper({
           ? {
               label: t("Spring na uitvoere", "Jump to exports"),
               onClick: () => {
-                const el = document.getElementById("export-bar");
+                const el = document.getElementById("exports");
                 el?.scrollIntoView({ behavior: "smooth", block: "start" });
+
               },
             }
           : undefined,
