@@ -71,7 +71,7 @@ function EditorContent() {
     queryFn: async () => {
       const { data: a, error } = await supabase
         .from("assessments")
-        .select("id,title,paper_code,status,level,part_type,generation_error")
+        .select("id,title,paper_code,status,level,part_type,generation_error,paper_pdf_path,mark_scheme_pdf_path,transcript_pdf_path")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
