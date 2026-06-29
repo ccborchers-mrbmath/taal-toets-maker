@@ -141,6 +141,15 @@ function EditorContent() {
           <span className="exam-stamp">{t(`dashboard.status.${assessment.status as "draft" | "generating" | "ready" | "failed"}`)}</span>
         </div>
 
+        {/* Workflow stepper */}
+        <WorkflowStepper
+          locale={locale}
+          status={assessment.status}
+          exercises={exercises}
+          onGenerate={run}
+          generating={isGenerating}
+        />
+
         {/* Action bar */}
         <div className="mt-6 flex flex-wrap items-center gap-2">
           {(assessment.status === "draft" || isFailed) && (
