@@ -664,6 +664,19 @@ export const generatePaper = createServerFn({ method: "POST" })
     await (supabaseAdmin as unknown as { from: (t: string) => { insert: (r: Record<string, unknown>) => Promise<{ error: unknown }> } })
       .from("credit_ledger").insert({ user_id: userId, delta: -1, reason: "generate_paper", metadata: { assessment_id: data.assessment_id } });
 
+    // Load the paper's voice cast (joined to voice_cast). Empty cast is OK
+    // — the model then falls back to short labels and audio uses a default
+    // narrator until the user picks voices.
+    const { data: castRows } = await (supabaseAdmin as unknown as {
+      from: (t: string) => { select: (c: string) => { eq: (c: string, v: string) => Promise<{ data: { voice_cast: { id: string; name: string; gender: string; age_band: string; tags: string[]; suitability: Record<string, boolean | undefined> } | null }[] | null }> } };
+    })
+      .from("assessment_voice_cast")
+      .select("voice_cast(id,name,gender,age_band,tags,suitability)")
+      .eq("assessment_id", data.assessment_id);
+    const fullCast = ((castRows ?? []).map((r) => r.voice_cast).filter(Boolean) as {
+      id: string; name: string; gender: string; age_band: string; tags: string[]; suitability: Record<string, boolean | undefined>;
+    }[]);
+
     // Mark generating
     await supabase.from("assessments").update({ status: "generating", generation_error: null }).eq("id", data.assessment_id);
 
@@ -677,6 +690,7 @@ export const generatePaper = createServerFn({ method: "POST" })
             title: a.title as string,
             exNum: n,
             brief,
+            cast: castForExercise(fullCast, n),
           }),
         ),
       );
@@ -701,7 +715,28 @@ export const generatePaper = createServerFn({ method: "POST" })
         exercises: exercises as PaperScript["exercises"],
       };
 
-      await persistPaper(supabaseAdmin as unknown as Sb, data.assessment_id, paper);
+      // Build per-exercise voice_map by matching speaker labels to cast names.
+      const voiceMapsByExNum: Record<number, Record<string, string>> = {};
+      const byName = new Map(fullCast.map((c) => [c.name, c.id]));
+      for (const ex of exercises) {
+        const labels = new Set<string>();
+        type T = { speaker?: string };
+        const collect = (arr: { turns?: T[] }[] | undefined) =>
+          arr?.forEach((it) => it.turns?.forEach((t) => t.speaker && labels.add(t.speaker)));
+        collect((ex as { items?: { turns?: T[] }[] }).items);
+        collect((ex as { pair_items?: { turns?: T[] }[] }).pair_items);
+        collect((ex as { speaker_items?: { turns?: T[] }[] }).speaker_items);
+        const topTurns = (ex as { turns?: T[] }).turns;
+        if (Array.isArray(topTurns)) topTurns.forEach((t) => t.speaker && labels.add(t.speaker));
+        const map: Record<string, string> = {};
+        for (const label of labels) {
+          const id = byName.get(label);
+          if (id) map[label] = id;
+        }
+        voiceMapsByExNum[ex.number] = map;
+      }
+
+      await persistPaper(supabaseAdmin as unknown as Sb, data.assessment_id, paper, voiceMapsByExNum);
 
       await supabase.from("assessments").update({ status: "ready" }).eq("id", data.assessment_id);
       return { ok: true, exercises: exercises.length };
