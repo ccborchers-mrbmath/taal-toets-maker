@@ -11,6 +11,8 @@ import { generatePaper } from "@/lib/generate.functions";
 import { generateOptionImage } from "@/lib/images.functions";
 import { generatePaperPdf } from "@/lib/pdf.functions";
 import { generateExerciseAudio, refreshExerciseAudioUrl } from "@/lib/audio.functions";
+import { generateFullPaperAudio } from "@/lib/full-audio.functions";
+
 
 type PdfKind = "paper" | "mark_scheme" | "transcript";
 
