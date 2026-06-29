@@ -1,4 +1,4 @@
-import { Headphones, LayoutGrid, LogOut, Plus, Store } from "lucide-react";
+import { Headphones, LayoutGrid, LogOut, Mic2, Plus, Store } from "lucide-react";
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
