@@ -438,3 +438,185 @@ function PdfButton({ id, kind, label }: { id: string; kind: PdfKind; label: stri
     </Button>
   );
 }
+
+type StepState = "pending" | "active" | "done" | "failed" | "locked";
+
+function WorkflowStepper({
+  locale,
+  status,
+  exercises,
+  onGenerate,
+  generating,
+}: {
+  locale: "af" | "en";
+  status: string;
+  exercises: FullPaper["exercises"];
+  onGenerate: () => void;
+  generating: boolean;
+}) {
+  const isReady = status === "ready" && exercises.length > 0;
+  const isFailed = status === "failed";
+
+  // Image progress (Exercise 1 options that have an image_prompt)
+  const allImgOpts = exercises.flatMap((e) =>
+    e.questions.flatMap((q) => q.question_options.filter((o) => o.image_prompt)),
+  );
+  const doneImgOpts = allImgOpts.filter((o) => o.image_url).length;
+  const totalImgOpts = allImgOpts.length;
+  const imagesDone = isReady && totalImgOpts > 0 && doneImgOpts === totalImgOpts;
+  const imagesPartial = isReady && doneImgOpts > 0 && doneImgOpts < totalImgOpts;
+
+  const t = (af: string, en: string) => (locale === "af" ? af : en);
+
+  const textState: StepState = isFailed
+    ? "failed"
+    : generating || status === "generating"
+    ? "active"
+    : isReady
+    ? "done"
+    : "active";
+
+  const imagesState: StepState = !isReady
+    ? "locked"
+    : totalImgOpts === 0
+    ? "done"
+    : imagesDone
+    ? "done"
+    : imagesPartial
+    ? "active"
+    : "pending";
+
+  const audioState: StepState = "locked"; // not yet built
+  const pdfState: StepState = !isReady ? "locked" : "pending";
+
+  const steps: Array<{
+    key: string;
+    icon: typeof Sparkles;
+    title: string;
+    sub: string;
+    state: StepState;
+    action?: { label: string; onClick: () => void; disabled?: boolean };
+  }> = [
+    {
+      key: "text",
+      icon: Sparkles,
+      title: t("1. Teks", "1. Text"),
+      sub:
+        textState === "done"
+          ? t("Oefeninge gegenereer", "Exercises generated")
+          : textState === "active"
+          ? t("Skep oefeninge…", "Generating exercises…")
+          : textState === "failed"
+          ? t("Misluk — probeer weer", "Failed — retry")
+          : t("Genereer die 5 oefeninge", "Generate the 5 exercises"),
+      state: textState,
+      action:
+        textState === "failed" || (status === "draft" && !generating)
+          ? { label: textState === "failed" ? t("Probeer weer", "Try again") : t("Genereer", "Generate"), onClick: onGenerate, disabled: generating }
+          : undefined,
+    },
+    {
+      key: "images",
+      icon: ImageIcon,
+      title: t("2. Beelde", "2. Images"),
+      sub:
+        imagesState === "locked"
+          ? t("Wag op teks", "Waiting on text")
+          : totalImgOpts === 0
+          ? t("Geen beelde nodig nie", "No images needed")
+          : t(
+              `${doneImgOpts}/${totalImgOpts} beelde gereed`,
+              `${doneImgOpts}/${totalImgOpts} images ready`,
+            ),
+      state: imagesState,
+      action:
+        imagesState === "active" || imagesState === "pending"
+          ? {
+              label: t("Spring na Oefening 1", "Jump to Exercise 1"),
+              onClick: () => {
+                const el = document.getElementById("exercise-1");
+                el?.scrollIntoView({ behavior: "smooth", block: "start" });
+              },
+            }
+          : undefined,
+    },
+    {
+      key: "audio",
+      icon: Headphones,
+      title: t("3. Klank", "3. Audio"),
+      sub: t("Binnekort beskikbaar", "Coming soon"),
+      state: audioState,
+    },
+    {
+      key: "pdf",
+      icon: FileText,
+      title: t("4. PDF's", "4. PDFs"),
+      sub:
+        pdfState === "locked"
+          ? t("Wag op teks", "Waiting on text")
+          : t("Laai vraestel, memo & transkripsie af", "Download paper, mark scheme & transcript"),
+      state: pdfState,
+      action:
+        pdfState === "pending"
+          ? {
+              label: t("Spring na uitvoere", "Jump to exports"),
+              onClick: () => {
+                const el = document.getElementById("export-bar");
+                el?.scrollIntoView({ behavior: "smooth", block: "start" });
+              },
+            }
+          : undefined,
+    },
+  ];
+
+  return (
+    <div className="mt-6 grid gap-3 rounded-md border border-border bg-muted/20 p-3 sm:grid-cols-2 lg:grid-cols-4">
+      {steps.map((s) => {
+        const Icon = s.icon;
+        const stateStyles: Record<StepState, string> = {
+          done: "border-foreground/30 bg-card",
+          active: "border-accent/60 bg-card ring-1 ring-accent/40",
+          failed: "border-destructive/60 bg-destructive/5",
+          pending: "border-dashed border-border bg-card",
+          locked: "border-dashed border-border bg-muted/30 opacity-60",
+        };
+        const badge: Record<StepState, ReactNodeBadge> = {
+          done: { icon: <Check className="h-3.5 w-3.5" />, label: t("Gereed", "Done") },
+          active: { icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />, label: t("Aktief", "Active") },
+          failed: { icon: null, label: t("Misluk", "Failed") },
+          pending: { icon: null, label: t("Wag", "Pending") },
+          locked: { icon: null, label: t("Gesluit", "Locked") },
+        };
+        return (
+          <div key={s.key} className={`flex flex-col rounded-md border p-3 text-sm ${stateStyles[s.state]}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 font-semibold">
+                <Icon className="h-4 w-4" />
+                {s.title}
+              </div>
+              <span className="inline-flex items-center gap-1 rounded bg-foreground/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider">
+                {badge[s.state].icon}
+                {badge[s.state].label}
+              </span>
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">{s.sub}</div>
+            {s.action && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 self-start"
+                onClick={s.action.onClick}
+                disabled={s.action.disabled}
+              >
+                {s.action.label}
+              </Button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+type ReactNodeBadge = { icon: React.ReactNode; label: string };
+
