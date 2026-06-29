@@ -884,3 +884,76 @@ function WorkflowStepper({
 
 type ReactNodeBadge = { icon: ReactNode; label: string };
 
+function FullAudioButton({
+  id,
+  cached,
+  ready,
+  onChange,
+}: {
+  id: string;
+  cached: boolean;
+  ready: boolean;
+  onChange: () => void;
+}) {
+  const { locale } = useT();
+  const [busy, setBusy] = useState<false | "download" | "regen">(false);
+  async function run(force: boolean) {
+    setBusy(force ? "regen" : "download");
+    try {
+      const res = await generateFullPaperAudio({ data: { assessment_id: id, force } });
+      triggerDownload(res.download_url, res.filename);
+      if (!res.cached) onChange();
+      if (force) toast.success(locale === "af" ? "Klank herskep" : "Audio regenerated");
+    } catch (err) {
+      toast.error(locale === "af" ? "Klank misluk" : "Audio failed", {
+        description: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+  const label = locale === "af" ? "Volledige klank" : "Full audio";
+  const disabled = !!busy || (!cached && !ready);
+  const title = !ready && !cached
+    ? locale === "af"
+      ? "Genereer eers klank vir alle oefeninge"
+      : "Generate audio for all exercises first"
+    : cached
+    ? locale === "af" ? "Laai bestaande MP3 af" : "Download existing MP3"
+    : undefined;
+  return (
+    <div className="inline-flex items-center">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => run(false)}
+        disabled={disabled}
+        className={cached ? "rounded-r-none border-r-0" : ""}
+        title={title}
+      >
+        {busy === "download" ? (
+          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+        ) : cached ? (
+          <Download className="mr-1.5 h-3.5 w-3.5" />
+        ) : (
+          <Headphones className="mr-1.5 h-3.5 w-3.5" />
+        )}
+        {cached ? (locale === "af" ? `Laai ${label} af` : `Download ${label}`) : label}
+      </Button>
+      {cached && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => run(true)}
+          disabled={!!busy}
+          className="rounded-l-none px-2"
+          title={locale === "af" ? "Herskep klank" : "Regenerate audio"}
+        >
+          {busy === "regen" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+
