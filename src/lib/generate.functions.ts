@@ -613,7 +613,7 @@ export const generatePaper = createServerFn({ method: "POST" })
     await (supabaseAdmin as unknown as { from: (t: string) => { update: (p: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> } } })
       .from("credit_balances").update({ balance: bal.balance - 1 }).eq("user_id", userId);
     await (supabaseAdmin as unknown as { from: (t: string) => { insert: (r: Record<string, unknown>) => Promise<{ error: unknown }> } })
-      .from("credit_ledger").insert({ user_id: userId, delta: -1, reason: "generate_paper", ref_type: "assessment", ref_id: data.assessment_id });
+      .from("credit_ledger").insert({ user_id: userId, delta: -1, reason: "generate_paper", metadata: { assessment_id: data.assessment_id } });
 
     // Mark generating
     await supabase.from("assessments").update({ status: "generating", generation_error: null }).eq("id", data.assessment_id);
@@ -663,7 +663,7 @@ export const generatePaper = createServerFn({ method: "POST" })
       await (supabaseAdmin as unknown as { from: (t: string) => { update: (p: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> } } })
         .from("credit_balances").update({ balance: bal.balance }).eq("user_id", userId);
       await (supabaseAdmin as unknown as { from: (t: string) => { insert: (r: Record<string, unknown>) => Promise<{ error: unknown }> } })
-        .from("credit_ledger").insert({ user_id: userId, delta: 1, reason: "refund_generate_paper", ref_type: "assessment", ref_id: data.assessment_id });
+        .from("credit_ledger").insert({ user_id: userId, delta: 1, reason: "refund_generate_paper", metadata: { assessment_id: data.assessment_id } });
       throw new Error(msg);
     }
   });
