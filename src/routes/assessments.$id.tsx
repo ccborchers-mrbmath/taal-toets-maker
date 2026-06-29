@@ -698,12 +698,14 @@ function WorkflowStepper({
   exercises,
   onGenerate,
   generating,
+  audioInFlight,
 }: {
   locale: "af" | "en";
   status: string;
   exercises: FullPaper["exercises"];
   onGenerate: () => void;
   generating: boolean;
+  audioInFlight: boolean;
 }) {
   const isReady = status === "ready" && exercises.length > 0;
   const isFailed = status === "failed";
@@ -739,13 +741,16 @@ function WorkflowStepper({
 
   const totalAudio = isReady ? exercises.length : 0;
   const doneAudio = isReady ? exercises.filter((e) => !!e.audio_url).length : 0;
+  // "Active" only while a generation request is in flight. Once nothing is
+  // generating, any exercise that has audio counts as done — so partial papers
+  // (e.g. only Exercise 1) are treated as complete and exports are enabled.
   const audioState: StepState = !isReady
     ? "locked"
-    : doneAudio === 0
-    ? "pending"
-    : doneAudio === totalAudio
+    : audioInFlight
+    ? "active"
+    : doneAudio > 0
     ? "done"
-    : "active";
+    : "pending";
   const pdfState: StepState = !isReady ? "locked" : "pending";
 
   const steps: Array<{
