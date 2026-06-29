@@ -496,11 +496,17 @@ type Sb = {
   };
 };
 
-async function persistPaper(supabase: Sb, assessmentId: string, paper: PaperScript) {
+async function persistPaper(
+  supabase: Sb,
+  assessmentId: string,
+  paper: PaperScript,
+  voiceMapsByExNum: Record<number, Record<string, string>>,
+) {
   // Wipe any previous exercises (cascades to questions/options/scripts)
   await supabase.from("exercises").delete().eq("assessment_id", assessmentId);
 
   for (const ex of paper.exercises) {
+    const voiceMap = voiceMapsByExNum[ex.number] ?? {};
     const { data: exRows, error: exErr } = await supabase
       .from("exercises")
       .insert({
@@ -510,6 +516,7 @@ async function persistPaper(supabase: Sb, assessmentId: string, paper: PaperScri
         rubric: ex.instructions,
         intro: null,
         statements: ex.shared_options ?? null,
+        voice_map: voiceMap,
       })
       .select("id");
     if (exErr || !exRows?.[0]) throw new Error(exErr?.message ?? "exercise insert failed");
