@@ -56,6 +56,8 @@ export type Database = {
           brief: string | null
           created_at: string
           created_by: string
+          full_audio_generated_at: string | null
+          full_audio_path: string | null
           generation_error: string | null
           id: string
           level: string
@@ -79,6 +81,8 @@ export type Database = {
           brief?: string | null
           created_at?: string
           created_by: string
+          full_audio_generated_at?: string | null
+          full_audio_path?: string | null
           generation_error?: string | null
           id?: string
           level?: string
@@ -102,6 +106,8 @@ export type Database = {
           brief?: string | null
           created_at?: string
           created_by?: string
+          full_audio_generated_at?: string | null
+          full_audio_path?: string | null
           generation_error?: string | null
           id?: string
           level?: string
