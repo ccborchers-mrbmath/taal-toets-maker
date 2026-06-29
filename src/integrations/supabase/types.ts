@@ -14,16 +14,299 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assessments: {
+        Row: {
+          audio_url: string | null
+          created_at: string
+          created_by: string
+          generation_error: string | null
+          id: string
+          paper_code: string
+          paper_name: string
+          status: string
+          subject_code: string
+          theme_hint: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string
+          created_by: string
+          generation_error?: string | null
+          id?: string
+          paper_code?: string
+          paper_name?: string
+          status?: string
+          subject_code?: string
+          theme_hint?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string
+          created_by?: string
+          generation_error?: string | null
+          id?: string
+          paper_code?: string
+          paper_name?: string
+          status?: string
+          subject_code?: string
+          theme_hint?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      credit_balances: {
+        Row: {
+          balance: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      credit_ledger: {
+        Row: {
+          created_at: string
+          delta: number
+          id: string
+          metadata: Json | null
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          id?: string
+          metadata?: Json | null
+          reason: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: string
+          metadata?: Json | null
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exercises: {
+        Row: {
+          assessment_id: string
+          id: string
+          intro: string | null
+          kind: string
+          number: number
+          rubric: string
+          statements: Json | null
+        }
+        Insert: {
+          assessment_id: string
+          id?: string
+          intro?: string | null
+          kind: string
+          number: number
+          rubric: string
+          statements?: Json | null
+        }
+        Update: {
+          assessment_id?: string
+          id?: string
+          intro?: string | null
+          kind?: string
+          number?: number
+          rubric?: string
+          statements?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercises_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listening_scripts: {
+        Row: {
+          audio_url: string | null
+          duration_seconds: number | null
+          exercise_id: string
+          id: string
+          sequence: number
+          speaker_label: string | null
+          transcript: string
+        }
+        Insert: {
+          audio_url?: string | null
+          duration_seconds?: number | null
+          exercise_id: string
+          id?: string
+          sequence?: number
+          speaker_label?: string | null
+          transcript: string
+        }
+        Update: {
+          audio_url?: string | null
+          duration_seconds?: number | null
+          exercise_id?: string
+          id?: string
+          sequence?: number
+          speaker_label?: string | null
+          transcript?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listening_scripts_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      question_options: {
+        Row: {
+          id: string
+          image_prompt: string | null
+          image_url: string | null
+          letter: string
+          question_id: string
+          text: string | null
+        }
+        Insert: {
+          id?: string
+          image_prompt?: string | null
+          image_url?: string | null
+          letter: string
+          question_id: string
+          text?: string | null
+        }
+        Update: {
+          id?: string
+          image_prompt?: string | null
+          image_url?: string | null
+          letter?: string
+          question_id?: string
+          text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questions: {
+        Row: {
+          correct_letter: string
+          exercise_id: string
+          id: string
+          number: number
+          speaker_index: number | null
+          stem: string
+        }
+        Insert: {
+          correct_letter: string
+          exercise_id: string
+          id?: string
+          number: number
+          speaker_index?: number | null
+          stem: string
+        }
+        Update: {
+          correct_letter?: string
+          exercise_id?: string
+          id?: string
+          number?: number
+          speaker_index?: number | null
+          stem?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +433,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
