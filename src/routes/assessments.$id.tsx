@@ -34,7 +34,7 @@ type FullPaper = {
     questions: {
       id: string; number: number; stem: string; correct_letter: string;
       speaker_index: number | null;
-      question_options: { letter: string; text: string | null; image_prompt: string | null }[];
+      question_options: { id: string; letter: string; text: string | null; image_prompt: string | null; image_url: string | null }[];
     }[];
     listening_scripts: { sequence: number; speaker_label: string | null; transcript: string }[];
   }[];
