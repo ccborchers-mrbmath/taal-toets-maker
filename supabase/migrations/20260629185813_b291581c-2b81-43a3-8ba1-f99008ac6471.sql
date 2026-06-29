@@ -1,0 +1,1 @@
+ALTER TABLE public.listening_scripts ADD COLUMN IF NOT EXISTS item_index INT;
