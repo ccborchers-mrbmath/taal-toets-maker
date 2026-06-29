@@ -237,6 +237,63 @@ function NewAssessmentForm() {
             </RadioGroup>
           </div>
 
+          {/* Voice cast picker */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Mic2 className="h-4 w-4" />
+              {locale === "af" ? "Stem-rolverdeling vir hierdie vraestel" : "Voice cast for this paper"}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {locale === "af"
+                ? "Kies watter stemme uit jou biblioteek beskikbaar is. Die AI sal slegs sprekers skryf wat hierdie stemme kan vertolk."
+                : "Pick which voices from your library are available. The AI will only write speakers these voices can play."}{" "}
+              <Link to="/voices" className="underline">
+                {locale === "af" ? "Bestuur biblioteek" : "Manage library"}
+              </Link>
+            </p>
+            {library.length === 0 ? (
+              <div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
+                {locale === "af"
+                  ? "Geen stemme in jou biblioteek nie — voeg eers stemme by /voices."
+                  : "No voices in your library — add some on /voices first."}
+              </div>
+            ) : (
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                {library.map((v) => {
+                  const checked = castIds.has(v.id);
+                  return (
+                    <label
+                      key={v.id}
+                      className={`flex items-start gap-2 rounded-md border p-2 text-xs ${
+                        checked ? "border-foreground/60 bg-muted/40" : "border-border"
+                      }`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(c) => {
+                          setCastIds((prev) => {
+                            const next = new Set(prev);
+                            if (c) next.add(v.id);
+                            else next.delete(v.id);
+                            return next;
+                          });
+                        }}
+                        className="mt-0.5"
+                      />
+                      <div className="min-w-0">
+                        <div className="truncate font-medium">{v.name}</div>
+                        <div className="truncate text-muted-foreground">
+                          {v.gender} · {v.age_band}
+                          {v.accent_rating ? ` · ${"★".repeat(v.accent_rating)}` : ""}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Per-exercise customisation */}
           <div className="space-y-2">
             <Label>{locale === "af" ? "Verfyn elke oefening (opsioneel)" : "Customise each exercise (optional)"}</Label>
