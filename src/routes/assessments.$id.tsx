@@ -336,7 +336,7 @@ function ExerciseBlock({
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{ex.rubric}</p>
 
-      <AudioBlock ex={ex} onGenerated={onAudioGenerated} />
+      <AudioBlock ex={ex} onGenerated={onAudioGenerated} onBusyChange={onAudioBusyChange} />
 
 
       {statements && (
