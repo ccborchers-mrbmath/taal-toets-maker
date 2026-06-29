@@ -235,7 +235,7 @@ function EditorContent() {
                 <FullAudioButton
                   id={id}
                   cached={!!assessment.full_audio_path}
-                  ready={exercises.every((e) => !!e.audio_url)}
+                  ready={exercises.some((e) => !!e.audio_url) && !audioInFlight}
                   onChange={() => query.refetch()}
                 />
               </div>
