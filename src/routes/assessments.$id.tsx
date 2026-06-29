@@ -445,6 +445,120 @@ function PdfButton({ id, kind, label }: { id: string; kind: PdfKind; label: stri
   );
 }
 
+function AudioBlock({ ex }: { ex: FullPaper["exercises"][number] }) {
+  const { locale } = useT();
+  const t = (af: string, en: string) => (locale === "af" ? af : en);
+  const [busy, setBusy] = useState(false);
+  const [url, setUrl] = useState<string | null>(ex.audio_url);
+  const [voiceMap, setVoiceMap] = useState<FullPaper["exercises"][number]["voice_map"]>(ex.voice_map);
+
+  async function ensureFreshUrl(currentUrl: string | null) {
+    if (!currentUrl) return null;
+    // Storage signed URLs expire — refresh if a HEAD request fails. Cheap
+    // optimistic path: just try playing first and only refresh on error.
+    return currentUrl;
+  }
+
+  async function generate() {
+    setBusy(true);
+    try {
+      const res = await generateExerciseAudio({ data: { exercise_id: ex.id } });
+      setUrl(res.audio_url);
+      setVoiceMap(res.voice_map);
+      toast.success(t("Klank gegenereer", "Audio generated"));
+    } catch (err) {
+      toast.error(t("Klank misluk", "Audio failed"), {
+        description: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function refresh() {
+    try {
+      const res = await refreshExerciseAudioUrl({ data: { exercise_id: ex.id } });
+      setUrl(res.audio_url);
+    } catch (err) {
+      toast.error(t("Vernuwing misluk", "Refresh failed"), {
+        description: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  void ensureFreshUrl;
+
+  return (
+    <div className="mt-4 rounded-md border border-border bg-muted/20 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <Headphones className="h-4 w-4" />
+          {t("Klankopname", "Listening audio")}
+        </div>
+        <div className="flex items-center gap-2">
+          {url && (
+            <a
+              href={url}
+              download={`exercise-${ex.number}.mp3`}
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t("Laai af", "Download")}
+            </a>
+          )}
+          <Button size="sm" variant="outline" onClick={generate} disabled={busy}>
+            {busy ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Headphones className="mr-1.5 h-3.5 w-3.5" />
+            )}
+            {busy
+              ? t("Genereer…", "Generating…")
+              : url
+              ? t("Herskep klank", "Regenerate audio")
+              : t("Genereer klank", "Generate audio")}
+          </Button>
+        </div>
+      </div>
+      {url ? (
+        <audio
+          key={url}
+          controls
+          preload="none"
+          className="mt-3 w-full"
+          src={url}
+          onError={() => {
+            // Signed URL likely expired — silently refresh once.
+            void refresh();
+          }}
+        >
+          <track kind="captions" />
+        </audio>
+      ) : (
+        <p className="mt-2 text-xs text-muted-foreground">
+          {t(
+            "Geen klank nog nie. Genereer ’n stewige MP3 met inleiding, opname en herhaling.",
+            "No audio yet. Generate a full MP3 with intro, recording, and repeat.",
+          )}
+        </p>
+      )}
+      {voiceMap && Object.keys(voiceMap).length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5 text-[11px]">
+          {Object.entries(voiceMap).map(([label, v]) => (
+            <span
+              key={label}
+              className="rounded border border-border bg-card px-1.5 py-0.5 font-mono"
+              title={`${label} → ${v.name}`}
+            >
+              {label} · {v.name}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 type StepState = "pending" | "active" | "done" | "failed" | "locked";
 
 function WorkflowStepper({
