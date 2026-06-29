@@ -564,6 +564,7 @@ function AudioBlock({ ex, onGenerated, onBusyChange }: { ex: FullPaper["exercise
 
   async function generate() {
     setBusy(true);
+    onBusyChange?.(true);
     try {
       const res = await generateExerciseAudio({ data: { exercise_id: ex.id } });
       setUrl(res.audio_url);
@@ -576,6 +577,7 @@ function AudioBlock({ ex, onGenerated, onBusyChange }: { ex: FullPaper["exercise
       });
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
 
