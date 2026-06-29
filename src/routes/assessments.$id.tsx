@@ -542,6 +542,8 @@ function AudioBlock({ ex, onGenerated }: { ex: FullPaper["exercises"][number]; o
       const res = await generateExerciseAudio({ data: { exercise_id: ex.id } });
       setUrl(res.audio_url);
       toast.success(t("Klank gegenereer", "Audio generated"));
+      onGenerated?.();
+
     } catch (err) {
       toast.error(t("Klank misluk", "Audio failed"), {
         description: err instanceof Error ? err.message : String(err),
