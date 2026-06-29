@@ -9,6 +9,7 @@ const af: Dict = {
   "app.tagline": "IGCSE Afrikaans 0548 Vraestelgenereerder",
   "nav.library": "Biblioteek",
   "nav.shop": "Winkel",
+  "nav.voices": "Stemme",
   "nav.new": "Nuwe Vraestel",
   "nav.pricing": "Pryse",
   "nav.terms": "Bepalings",
