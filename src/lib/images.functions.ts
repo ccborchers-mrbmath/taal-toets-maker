@@ -21,7 +21,7 @@ async function generatePngFromPrompt(prompt: string): Promise<Uint8Array> {
       messages: [
         {
           role: "user",
-          content: `${prompt}. Clean photographic style, single clear subject, no text, no captions, no watermarks, no logos.`,
+          content: `${prompt}. Black-and-white line art illustration in the style of Cambridge IGCSE exam papers: clean black ink outlines on a plain white background, light pencil-style shading only, simple flat composition, single clear subject framed in a square panel, no colour, no photographic detail, no text, no captions, no letters, no watermarks, no logos, no borders.`,
         },
       ],
       modalities: ["image", "text"],
