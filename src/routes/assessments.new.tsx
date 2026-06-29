@@ -92,6 +92,22 @@ function NewAssessmentForm() {
   });
   const [busy, setBusy] = useState(false);
 
+  // Voice cast picker
+  const [library, setLibrary] = useState<CastVoice[]>([]);
+  const [castIds, setCastIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    let alive = true;
+    listMyVoices()
+      .then((rows) => {
+        if (!alive) return;
+        setLibrary(rows);
+        // Default: everything active
+        setCastIds(new Set(rows.filter((r) => r.active).map((r) => r.id)));
+      })
+      .catch(() => { /* ignore — page still works without cast */ });
+    return () => { alive = false; };
+  }, []);
+
   const activeExercises = useMemo(() => exercisesFor(partType), [partType]);
   const activePart = SELECTABLE_PARTS.find((p) => p.id === partType)!;
 
