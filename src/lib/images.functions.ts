@@ -57,7 +57,7 @@ export const generateOptionImage = createServerFn({ method: "POST" })
     const { data: opt, error: optErr } = await supabase
       .from("question_options")
       .select(
-        "id,letter,image_prompt,image_url,question_id,questions!inner(exercise_id,exercises!inner(assessment_id,assessments!inner(user_id)))",
+        "id,letter,image_prompt,image_url,question_id,questions!inner(exercise_id,exercises!inner(assessment_id))",
       )
       .eq("id", data.option_id)
       .maybeSingle();
