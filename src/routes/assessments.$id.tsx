@@ -413,14 +413,30 @@ function ExerciseBlock({
   );
 }
 
-function PdfButton({ id, kind, label }: { id: string; kind: PdfKind; label: string }) {
+function PdfButton({
+  id,
+  kind,
+  label,
+  cached,
+  onChange,
+}: {
+  id: string;
+  kind: PdfKind;
+  label: string;
+  cached: boolean;
+  onChange: () => void;
+}) {
   const { locale } = useT();
-  const [busy, setBusy] = useState(false);
-  async function run() {
-    setBusy(true);
+  const [busy, setBusy] = useState<false | "download" | "regen">(false);
+  async function run(force: boolean) {
+    setBusy(force ? "regen" : "download");
     try {
-      const res = await generatePaperPdf({ data: { assessment_id: id, kind } });
-      downloadBase64Pdf(res.filename, res.base64);
+      const res = await generatePaperPdf({ data: { assessment_id: id, kind, force } });
+      triggerDownload(res.download_url, res.filename);
+      if (!res.cached) onChange();
+      if (force) {
+        toast.success(locale === "af" ? "PDF herskep" : "PDF regenerated");
+      }
     } catch (err) {
       toast.error(locale === "af" ? "PDF misluk" : "PDF failed", {
         description: err instanceof Error ? err.message : String(err),
@@ -430,18 +446,42 @@ function PdfButton({ id, kind, label }: { id: string; kind: PdfKind; label: stri
     }
   }
   return (
-    <Button variant="outline" size="sm" onClick={run} disabled={busy}>
-      {busy ? (
-        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-      ) : kind === "paper" ? (
-        <Download className="mr-1.5 h-3.5 w-3.5" />
-      ) : (
-        <FileText className="mr-1.5 h-3.5 w-3.5" />
+    <div className="inline-flex items-center">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => run(false)}
+        disabled={!!busy}
+        className={cached ? "rounded-r-none border-r-0" : ""}
+        title={cached ? (locale === "af" ? "Laai bestaande PDF af" : "Download existing PDF") : undefined}
+      >
+        {busy === "download" ? (
+          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+        ) : cached ? (
+          <Download className="mr-1.5 h-3.5 w-3.5" />
+        ) : kind === "paper" ? (
+          <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+        ) : (
+          <FileText className="mr-1.5 h-3.5 w-3.5" />
+        )}
+        {cached ? (locale === "af" ? `Laai ${label.replace(" PDF", "")} af` : `Download ${label.replace(" PDF", "")}`) : label}
+      </Button>
+      {cached && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => run(true)}
+          disabled={!!busy}
+          className="rounded-l-none px-2"
+          title={locale === "af" ? "Herskep PDF" : "Regenerate PDF"}
+        >
+          {busy === "regen" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+        </Button>
       )}
-      {label}
-    </Button>
+    </div>
   );
 }
+
 
 function AudioBlock({ ex }: { ex: FullPaper["exercises"][number] }) {
   const { locale } = useT();
