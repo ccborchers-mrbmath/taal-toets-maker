@@ -18,7 +18,6 @@ async function generatePngFromPrompt(prompt: string): Promise<Uint8Array> {
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "google/gemini-3.1-flash-image",
-      prompt: `${prompt}. Clean photographic style, single clear subject, no text, no captions, no watermarks, no logos.`,
       messages: [
         {
           role: "user",
@@ -26,7 +25,6 @@ async function generatePngFromPrompt(prompt: string): Promise<Uint8Array> {
         },
       ],
       modalities: ["image", "text"],
-      n: 1,
     }),
   });
 
