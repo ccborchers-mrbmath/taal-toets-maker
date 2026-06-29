@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, ImageIcon, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useT } from "@/lib/i18n";
 import { generatePaper } from "@/lib/generate.functions";
+import { generateOptionImage } from "@/lib/images.functions";
 
 export const Route = createFileRoute("/assessments/$id")({
   head: () => ({ meta: [{ title: "Vraestel — Luister Lab" }] }),
