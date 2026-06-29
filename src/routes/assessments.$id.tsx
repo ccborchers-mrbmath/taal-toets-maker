@@ -500,7 +500,7 @@ function PdfButton({
 }
 
 
-function AudioBlock({ ex }: { ex: FullPaper["exercises"][number] }) {
+function AudioBlock({ ex, onGenerated }: { ex: FullPaper["exercises"][number]; onGenerated?: () => void }) {
   const { locale } = useT();
   const t = (af: string, en: string) => (locale === "af" ? af : en);
   const [busy, setBusy] = useState(false);
