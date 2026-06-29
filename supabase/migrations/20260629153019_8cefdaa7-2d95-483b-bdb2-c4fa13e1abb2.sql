@@ -1,0 +1,1 @@
+ALTER TABLE public.question_options ADD COLUMN IF NOT EXISTS image_url TEXT;
