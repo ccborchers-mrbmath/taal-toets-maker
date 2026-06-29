@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      assessment_voice_cast: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          id: string
+          voice_cast_id: string
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          id?: string
+          voice_cast_id: string
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          id?: string
+          voice_cast_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_voice_cast_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_voice_cast_voice_cast_id_fkey"
+            columns: ["voice_cast_id"]
+            isOneToOne: false
+            referencedRelation: "voice_cast"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessments: {
         Row: {
           audio_url: string | null
@@ -304,6 +340,57 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      voice_cast: {
+        Row: {
+          accent_note: string | null
+          accent_rating: number
+          active: boolean
+          age_band: string
+          created_at: string
+          created_by: string
+          gender: string
+          id: string
+          name: string
+          suitability: Json
+          tags: string[]
+          updated_at: string
+          voice_id: string
+          voice_settings: Json
+        }
+        Insert: {
+          accent_note?: string | null
+          accent_rating?: number
+          active?: boolean
+          age_band?: string
+          created_at?: string
+          created_by: string
+          gender?: string
+          id?: string
+          name: string
+          suitability?: Json
+          tags?: string[]
+          updated_at?: string
+          voice_id: string
+          voice_settings?: Json
+        }
+        Update: {
+          accent_note?: string | null
+          accent_rating?: number
+          active?: boolean
+          age_band?: string
+          created_at?: string
+          created_by?: string
+          gender?: string
+          id?: string
+          name?: string
+          suitability?: Json
+          tags?: string[]
+          updated_at?: string
+          voice_id?: string
+          voice_settings?: Json
         }
         Relationships: []
       }

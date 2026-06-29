@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Mic2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useT, type Locale } from "@/lib/i18n";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +22,7 @@ import {
   type PartType,
 } from "@/lib/parts";
 import { generatePaper } from "@/lib/generate.functions";
+import { listMyVoices, setAssessmentCast, type CastVoice } from "@/lib/voice-cast.functions";
 
 export const Route = createFileRoute("/assessments/new")({
   head: () => ({ meta: [{ title: "Nuwe vraestel — Luister Lab" }] }),
@@ -90,6 +92,22 @@ function NewAssessmentForm() {
   });
   const [busy, setBusy] = useState(false);
 
+  // Voice cast picker
+  const [library, setLibrary] = useState<CastVoice[]>([]);
+  const [castIds, setCastIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    let alive = true;
+    listMyVoices()
+      .then((rows) => {
+        if (!alive) return;
+        setLibrary(rows);
+        // Default: everything active
+        setCastIds(new Set(rows.filter((r) => r.active).map((r) => r.id)));
+      })
+      .catch(() => { /* ignore — page still works without cast */ });
+    return () => { alive = false; };
+  }, []);
+
   const activeExercises = useMemo(() => exercisesFor(partType), [partType]);
   const activePart = SELECTABLE_PARTS.find((p) => p.id === partType)!;
 
@@ -128,6 +146,20 @@ function NewAssessmentForm() {
         .select("id")
         .single();
       if (error) throw error;
+
+      // Persist the cast selection for this paper (server-validated against
+      // the user's own library). Generation reads this to write only roles
+      // the cast can fill.
+      if (castIds.size > 0) {
+        try {
+          await setAssessmentCast({
+            data: { assessment_id: created.id, voice_cast_ids: [...castIds] },
+          });
+        } catch (err) {
+          console.warn("Voice cast not saved", err);
+        }
+      }
+
 
       toast.message(locale === "af" ? "Vraestel word geskep…" : "Generating paper…");
       navigate({ to: "/assessments/$id", params: { id: created.id } });
@@ -203,6 +235,63 @@ function NewAssessmentForm() {
                 </label>
               ))}
             </RadioGroup>
+          </div>
+
+          {/* Voice cast picker */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Mic2 className="h-4 w-4" />
+              {locale === "af" ? "Stem-rolverdeling vir hierdie vraestel" : "Voice cast for this paper"}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {locale === "af"
+                ? "Kies watter stemme uit jou biblioteek beskikbaar is. Die AI sal slegs sprekers skryf wat hierdie stemme kan vertolk."
+                : "Pick which voices from your library are available. The AI will only write speakers these voices can play."}{" "}
+              <Link to="/voices" className="underline">
+                {locale === "af" ? "Bestuur biblioteek" : "Manage library"}
+              </Link>
+            </p>
+            {library.length === 0 ? (
+              <div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
+                {locale === "af"
+                  ? "Geen stemme in jou biblioteek nie — voeg eers stemme by /voices."
+                  : "No voices in your library — add some on /voices first."}
+              </div>
+            ) : (
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                {library.map((v) => {
+                  const checked = castIds.has(v.id);
+                  return (
+                    <label
+                      key={v.id}
+                      className={`flex items-start gap-2 rounded-md border p-2 text-xs ${
+                        checked ? "border-foreground/60 bg-muted/40" : "border-border"
+                      }`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(c) => {
+                          setCastIds((prev) => {
+                            const next = new Set(prev);
+                            if (c) next.add(v.id);
+                            else next.delete(v.id);
+                            return next;
+                          });
+                        }}
+                        className="mt-0.5"
+                      />
+                      <div className="min-w-0">
+                        <div className="truncate font-medium">{v.name}</div>
+                        <div className="truncate text-muted-foreground">
+                          {v.gender} · {v.age_band}
+                          {v.accent_rating ? ` · ${"★".repeat(v.accent_rating)}` : ""}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Per-exercise customisation */}

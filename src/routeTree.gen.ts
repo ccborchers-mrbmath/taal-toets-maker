@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VoicesRouteImport } from './routes/voices'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as RefundsRouteImport } from './routes/refunds'
@@ -20,6 +21,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AssessmentsNewRouteImport } from './routes/assessments.new'
 import { Route as AssessmentsIdRouteImport } from './routes/assessments.$id'
 
+const VoicesRoute = VoicesRouteImport.update({
+  id: '/voices',
+  path: '/voices',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/refunds': typeof RefundsRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
+  '/voices': typeof VoicesRoute
   '/assessments/$id': typeof AssessmentsIdRoute
   '/assessments/new': typeof AssessmentsNewRoute
 }
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/refunds': typeof RefundsRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
+  '/voices': typeof VoicesRoute
   '/assessments/$id': typeof AssessmentsIdRoute
   '/assessments/new': typeof AssessmentsNewRoute
 }
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/refunds': typeof RefundsRoute
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
+  '/voices': typeof VoicesRoute
   '/assessments/$id': typeof AssessmentsIdRoute
   '/assessments/new': typeof AssessmentsNewRoute
 }
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/refunds'
     | '/shop'
     | '/terms'
+    | '/voices'
     | '/assessments/$id'
     | '/assessments/new'
   fileRoutesByTo: FileRoutesByTo
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/refunds'
     | '/shop'
     | '/terms'
+    | '/voices'
     | '/assessments/$id'
     | '/assessments/new'
   id:
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/refunds'
     | '/shop'
     | '/terms'
+    | '/voices'
     | '/assessments/$id'
     | '/assessments/new'
   fileRoutesById: FileRoutesById
@@ -156,12 +168,20 @@ export interface RootRouteChildren {
   RefundsRoute: typeof RefundsRoute
   ShopRoute: typeof ShopRoute
   TermsRoute: typeof TermsRoute
+  VoicesRoute: typeof VoicesRoute
   AssessmentsIdRoute: typeof AssessmentsIdRoute
   AssessmentsNewRoute: typeof AssessmentsNewRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/voices': {
+      id: '/voices'
+      path: '/voices'
+      fullPath: '/voices'
+      preLoaderRoute: typeof VoicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -244,19 +264,10 @@ const rootRouteChildren: RootRouteChildren = {
   RefundsRoute: RefundsRoute,
   ShopRoute: ShopRoute,
   TermsRoute: TermsRoute,
+  VoicesRoute: VoicesRoute,
   AssessmentsIdRoute: AssessmentsIdRoute,
   AssessmentsNewRoute: AssessmentsNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

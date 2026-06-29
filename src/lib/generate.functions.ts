@@ -349,6 +349,33 @@ function buildUserGuidance(exNum: ExerciseNum, parsed: ParsedBrief): string {
 // Single AI call for one exercise
 // ---------------------------------------------------------------------------
 
+export type CastLite = {
+  id: string;
+  name: string;
+  gender: string;
+  age_band: string;
+  tags: string[];
+};
+
+function castBlock(cast: CastLite[]): string {
+  if (cast.length === 0) {
+    return "Geen stem-rolverdeling is verskaf nie — gebruik kort etikette ('M', 'V', voorname).";
+  }
+  const lines = cast.map(
+    (c) =>
+      `  • ${c.name} — ${c.gender}, ${c.age_band}${c.tags.length ? `, ${c.tags.join(", ")}` : ""}`,
+  );
+  return [
+    "BESKIKBARE STEM-ROLVERDELING (gebruik UITSLUITLIK hierdie name as `speaker`):",
+    ...lines,
+    "Reëls:",
+    "  - Elke `speaker` veld in `turns` MOET presies een van bogenoemde name wees (hoofletter-sensitief).",
+    "  - Kies stemme wie se geslag en ouderdom by die karakter pas.",
+    "  - Moenie meer afsonderlike sprekers in 'n item gebruik as wat in die rolverdeling beskikbaar is nie.",
+    "  - Moenie verteller-instruksies (rubriek) in `turns` insluit nie — slegs karakter-spraak.",
+  ].join("\n");
+}
+
 async function generateExercise(opts: {
   apiKey: string;
   level: "core" | "extended";
@@ -356,10 +383,12 @@ async function generateExercise(opts: {
   title: string;
   exNum: ExerciseNum;
   brief: ParsedBrief;
+  cast: CastLite[];
 }) {
   const spec = EXERCISE_BRIEFS[opts.exNum];
   const teacherGuidance = buildUserGuidance(opts.exNum, opts.brief);
   const themeForPrompt = opts.brief.theme || opts.topic || "Kies 'n ouderdomstoepaslike alledaagse tema.";
+  const cast = castBlock(opts.cast);
 
   const systemPrompt = `Jy is 'n kundige skrywer van Cambridge IGCSE Afrikaans as 'n Tweede Taal (0548) Vraestel 2 (Luister) toetsmateriaal.
 Skryf alle inhoud in natuurlike Suid-Afrikaanse Afrikaans wat toepaslik is vir 14–16-jarige kandidate op ${opts.level === "extended" ? "die Uitgebreide (Extended)" : "die Kern (Core)"} vlak.
@@ -367,9 +396,10 @@ Skryf alle inhoud in natuurlike Suid-Afrikaanse Afrikaans wat toepaslik is vir 1
 - Maak afleiers geloofwaardig — verkeerde opsies moet redelik klink.
 - Antwoorde moet ondubbelsinnig deur die teks ondersteun word.
 - Moenie antwoordletters in die transkripsie noem nie.
-- Hou spreker-etikette KORT (bv. "M", "V", "M1", "V1", "Onderhoudvoerder", of 'n voornaam).
-- Verskaf 'n "speakers_meta" beskrywing vir ELKE spreker in ELKE item in die vorm 'ETIKET: geslag, ouderdom, aksent' (bv. 'V: vroulik, tienerouderdom, Pretoriase aksent').
-- Sillabus-relevante temas: alledaagse lewe, skool, vryetyd, omgewing, werk/loopbane, kultuur, tegnologie.`;
+- Verskaf 'n "speakers_meta" beskrywing vir ELKE spreker in ELKE item in die vorm 'NAAM: geslag, ouderdom, aksent' (bv. 'Sarah: vroulik, tienerouderdom, Pretoriase aksent').
+- Sillabus-relevante temas: alledaagse lewe, skool, vryetyd, omgewing, werk/loopbane, kultuur, tegnologie.
+
+${cast}`;
 
   const userPrompt = `Genereer Oefening ${opts.exNum} van 'n ${opts.level === "extended" ? "UITGEBREIDE" : "KERN"}-vlak Cambridge IGCSE 0548/02 luistervraestel.
 
@@ -425,6 +455,18 @@ Vraagnommers moet in die reeks ${spec.numberRange[0]}–${spec.numberRange[1]} w
   };
 }
 
+// Filter the paper-wide cast to the voices flagged suitable for a given exercise.
+function castForExercise(all: (CastLite & { suitability: Record<string, boolean | undefined> })[], exNum: ExerciseNum): CastLite[] {
+  const want: string[] =
+    exNum === 1 ? ["ex1"]
+    : exNum === 2 ? ["ex2"]
+    : exNum === 3 ? ["ex3"]
+    : exNum === 4 ? ["ex4"]
+    : ["ex5_interviewer", "ex5_interviewee"];
+  const filtered = all.filter((v) => want.some((k) => v.suitability?.[k]));
+  return (filtered.length ? filtered : all).map(({ id, name, gender, age_band, tags }) => ({ id, name, gender, age_band, tags }));
+}
+
 // ---------------------------------------------------------------------------
 // Validation gate
 // ---------------------------------------------------------------------------
@@ -454,11 +496,17 @@ type Sb = {
   };
 };
 
-async function persistPaper(supabase: Sb, assessmentId: string, paper: PaperScript) {
+async function persistPaper(
+  supabase: Sb,
+  assessmentId: string,
+  paper: PaperScript,
+  voiceMapsByExNum: Record<number, Record<string, string>>,
+) {
   // Wipe any previous exercises (cascades to questions/options/scripts)
   await supabase.from("exercises").delete().eq("assessment_id", assessmentId);
 
   for (const ex of paper.exercises) {
+    const voiceMap = voiceMapsByExNum[ex.number] ?? {};
     const { data: exRows, error: exErr } = await supabase
       .from("exercises")
       .insert({
@@ -468,6 +516,7 @@ async function persistPaper(supabase: Sb, assessmentId: string, paper: PaperScri
         rubric: ex.instructions,
         intro: null,
         statements: ex.shared_options ?? null,
+        voice_map: voiceMap,
       })
       .select("id");
     if (exErr || !exRows?.[0]) throw new Error(exErr?.message ?? "exercise insert failed");
@@ -615,6 +664,19 @@ export const generatePaper = createServerFn({ method: "POST" })
     await (supabaseAdmin as unknown as { from: (t: string) => { insert: (r: Record<string, unknown>) => Promise<{ error: unknown }> } })
       .from("credit_ledger").insert({ user_id: userId, delta: -1, reason: "generate_paper", metadata: { assessment_id: data.assessment_id } });
 
+    // Load the paper's voice cast (joined to voice_cast). Empty cast is OK
+    // — the model then falls back to short labels and audio uses a default
+    // narrator until the user picks voices.
+    const { data: castRows } = await (supabaseAdmin as unknown as {
+      from: (t: string) => { select: (c: string) => { eq: (c: string, v: string) => Promise<{ data: { voice_cast: { id: string; name: string; gender: string; age_band: string; tags: string[]; suitability: Record<string, boolean | undefined> } | null }[] | null }> } };
+    })
+      .from("assessment_voice_cast")
+      .select("voice_cast(id,name,gender,age_band,tags,suitability)")
+      .eq("assessment_id", data.assessment_id);
+    const fullCast = ((castRows ?? []).map((r) => r.voice_cast).filter(Boolean) as {
+      id: string; name: string; gender: string; age_band: string; tags: string[]; suitability: Record<string, boolean | undefined>;
+    }[]);
+
     // Mark generating
     await supabase.from("assessments").update({ status: "generating", generation_error: null }).eq("id", data.assessment_id);
 
@@ -628,6 +690,7 @@ export const generatePaper = createServerFn({ method: "POST" })
             title: a.title as string,
             exNum: n,
             brief,
+            cast: castForExercise(fullCast, n),
           }),
         ),
       );
@@ -652,7 +715,28 @@ export const generatePaper = createServerFn({ method: "POST" })
         exercises: exercises as PaperScript["exercises"],
       };
 
-      await persistPaper(supabaseAdmin as unknown as Sb, data.assessment_id, paper);
+      // Build per-exercise voice_map by matching speaker labels to cast names.
+      const voiceMapsByExNum: Record<number, Record<string, string>> = {};
+      const byName = new Map(fullCast.map((c) => [c.name, c.id]));
+      for (const ex of exercises) {
+        const labels = new Set<string>();
+        type T = { speaker?: string };
+        const collect = (arr: { turns?: T[] }[] | undefined) =>
+          arr?.forEach((it) => it.turns?.forEach((t) => t.speaker && labels.add(t.speaker)));
+        collect((ex as { items?: { turns?: T[] }[] }).items);
+        collect((ex as { pair_items?: { turns?: T[] }[] }).pair_items);
+        collect((ex as { speaker_items?: { turns?: T[] }[] }).speaker_items);
+        const topTurns = (ex as { turns?: T[] }).turns;
+        if (Array.isArray(topTurns)) topTurns.forEach((t) => t.speaker && labels.add(t.speaker));
+        const map: Record<string, string> = {};
+        for (const label of labels) {
+          const id = byName.get(label);
+          if (id) map[label] = id;
+        }
+        voiceMapsByExNum[ex.number] = map;
+      }
+
+      await persistPaper(supabaseAdmin as unknown as Sb, data.assessment_id, paper, voiceMapsByExNum);
 
       await supabase.from("assessments").update({ status: "ready" }).eq("id", data.assessment_id);
       return { ok: true, exercises: exercises.length };
