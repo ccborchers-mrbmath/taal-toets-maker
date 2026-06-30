@@ -333,8 +333,7 @@ async function renderPaperCover(
   }
   y -= 16;
 
-  // SPECIMEN PAPER    Approximately 50 minutes (including 6 minutes' transfer time)
-  page.drawText("SPECIMEN PAPER", { x: MARGIN, y, size: 11, font: ctx.bold });
+  // Duration (right side only; specimen label removed)
   const durText = "Approximately 50 minutes (including 6 minutes' transfer time)";
   const durW = ctx.bold.widthOfTextAtSize(durText, 10);
   page.drawText(durText, { x: PAGE_W - MARGIN - durW, y, size: 10, font: ctx.bold });
