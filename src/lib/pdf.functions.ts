@@ -258,36 +258,36 @@ async function renderPaperCover(
   const page = ctx.page;
   // --- Top band: school logo box (left) + Cambridge Assessment block (right)
   const topY = PAGE_H - MARGIN;
-  const logoBoxW = 110;
-  const logoBoxH = 60;
-  // School logo box (no border per spec — just placement)
+  // Both top-band logos share the same height and vertical centreline,
+  // matching the reference layout: school crest flush-left at the margin,
+  // Cambridge wordmark right-aligned at the opposite margin.
+  const logoBoxH = 75;
+  const bandCentreY = topY - logoBoxH / 2;
   if (logoPng) {
     try {
       let embedded;
       try { embedded = await ctx.doc.embedPng(logoPng); }
       catch { embedded = await ctx.doc.embedJpg(logoPng); }
-      const scale = Math.min(logoBoxW / embedded.width, logoBoxH / embedded.height);
+      const scale = logoBoxH / embedded.height;
       const w = embedded.width * scale;
-      const h = embedded.height * scale;
+      const h = logoBoxH;
       page.drawImage(embedded, {
-        x: MARGIN + (logoBoxW - w) / 2,
-        y: topY - logoBoxH + (logoBoxH - h) / 2,
+        x: MARGIN,
+        y: bandCentreY - h / 2,
         width: w,
         height: h,
       });
     } catch {
-      page.drawText("School logo", { x: MARGIN + 8, y: topY - 24, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
-      page.drawText("goes here", { x: MARGIN + 8, y: topY - 36, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
+      page.drawText("School logo", { x: MARGIN, y: bandCentreY + 4, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
+      page.drawText("goes here", { x: MARGIN, y: bandCentreY - 8, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
     }
   } else {
-    page.drawText("School logo", { x: MARGIN + 8, y: topY - 24, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
-    page.drawText("goes here", { x: MARGIN + 8, y: topY - 36, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
+    page.drawText("School logo", { x: MARGIN, y: bandCentreY + 4, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
+    page.drawText("goes here", { x: MARGIN, y: bandCentreY - 8, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
   }
 
-
   // Cambridge Assessment International Education wordmark (crest + text),
-  // right-aligned. Height matches the school-logo box so both top-band
-  // images align on the same baseline.
+  // right-aligned at the opposite margin, same height as the school logo.
   try {
     const { cambridgeLogoBytes, CAMBRIDGE_LOGO_WIDTH, CAMBRIDGE_LOGO_HEIGHT } =
       await import("./cambridge-logo");
@@ -296,17 +296,16 @@ async function renderPaperCover(
     const camW = (CAMBRIDGE_LOGO_WIDTH / CAMBRIDGE_LOGO_HEIGHT) * camH;
     page.drawImage(camEmbed, {
       x: PAGE_W - MARGIN - camW,
-      y: topY - logoBoxH,
+      y: bandCentreY - camH / 2,
       width: camW,
       height: camH,
     });
   } catch {
-    // Fallback: plain text wordmark
     const caRight = PAGE_W - MARGIN;
     const caW1 = ctx.bold.widthOfTextAtSize("Cambridge Assessment", 12);
     const caW2 = ctx.bold.widthOfTextAtSize("International Education", 12);
-    page.drawText("Cambridge Assessment", { x: caRight - caW1, y: topY - 14, size: 12, font: ctx.bold, color: rgb(0.1, 0.15, 0.35) });
-    page.drawText("International Education", { x: caRight - caW2, y: topY - 28, size: 12, font: ctx.bold, color: rgb(0.1, 0.15, 0.35) });
+    page.drawText("Cambridge Assessment", { x: caRight - caW1, y: bandCentreY + 2, size: 12, font: ctx.bold, color: rgb(0.1, 0.15, 0.35) });
+    page.drawText("International Education", { x: caRight - caW2, y: bandCentreY - 14, size: 12, font: ctx.bold, color: rgb(0.1, 0.15, 0.35) });
   }
 
 
