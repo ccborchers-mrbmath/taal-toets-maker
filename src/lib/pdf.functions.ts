@@ -329,11 +329,8 @@ async function renderPaperCover(
   }
   y -= 16;
 
-  // Paper 2 Listening   [right: For examination from 2025 — plain bold, no box]
+  // Paper 2 Listening
   page.drawText("Paper 2 Listening", { x: MARGIN, y, size: 11, font: ctx.font });
-  const fromLabel = "For examination from 2025";
-  const fromW = ctx.bold.widthOfTextAtSize(fromLabel, 10);
-  page.drawText(fromLabel, { x: PAGE_W - MARGIN - fromW, y, size: 10, font: ctx.bold });
   y -= 16;
 
   // SPECIMEN PAPER    Approximately 50 minutes (including 6 minutes' transfer time)
