@@ -322,17 +322,15 @@ async function renderPaperCover(
   const codeText = a.paper_code || "0548/02";
   const codeW = ctx.bold.widthOfTextAtSize(codeText, 12);
   page.drawText(codeText, { x: PAGE_W - MARGIN - codeW, y, size: 12, font: ctx.bold });
-  // Date of assessment (bold) on same row as subject — replaces the
-  // grey "For examination from 2025" box from the legacy layout.
-  if (a.date_of_assessment) {
-    const dateText = `Date of assessment: ${a.date_of_assessment}`;
-    const subjW = ctx.bold.widthOfTextAtSize(subject, 12);
-    page.drawText(dateText, { x: MARGIN + subjW + 18, y, size: 10, font: ctx.bold });
-  }
   y -= 16;
 
-  // Paper 2 Listening
+  // Paper 2 Listening    Date of assessment: ... (right-aligned, bold)
   page.drawText("Paper 2 Listening", { x: MARGIN, y, size: 11, font: ctx.font });
+  if (a.date_of_assessment) {
+    const dateText = `Date of assessment: ${a.date_of_assessment}`;
+    const dateW = ctx.bold.widthOfTextAtSize(dateText, 11);
+    page.drawText(dateText, { x: PAGE_W - MARGIN - dateW, y, size: 11, font: ctx.bold });
+  }
   y -= 16;
 
   // SPECIMEN PAPER    Approximately 50 minutes (including 6 minutes' transfer time)
