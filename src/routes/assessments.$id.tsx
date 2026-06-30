@@ -47,7 +47,10 @@ type FullPaper = {
     mark_scheme_pdf_path: string | null;
     transcript_pdf_path: string | null;
     full_audio_path: string | null;
+    school_logo_path: string | null;
+    date_of_assessment: string | null;
   };
+
 
   exercises: {
     id: string; number: number; kind: string; rubric: string;
