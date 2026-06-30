@@ -1117,6 +1117,7 @@ export const generatePaperPdf = createServerFn({ method: "POST" })
     const bold = await doc.embedFont(StandardFonts.HelveticaBold);
     const italic = await doc.embedFont(StandardFonts.HelveticaOblique);
 
+    const isPaper = data.kind === "paper";
     const ctx: Ctx = {
       doc,
       page: doc.addPage([PAGE_W, PAGE_H]),
@@ -1129,8 +1130,22 @@ export const generatePaperPdf = createServerFn({ method: "POST" })
         subtitle: a.paper_code,
       },
     };
-    drawPageHeader(ctx);
-    if (data.kind !== "transcript") {
+    if (!isPaper) drawPageHeader(ctx);
+
+    let coverHandles: CoverHandles | null = null;
+    if (isPaper) {
+      // Load school logo bytes (if uploaded).
+      let logoBytes: Uint8Array | null = null;
+      if (aFull.school_logo_path) {
+        try {
+          const { data: logoBlob } = await admin.storage.from("paper-logos").download(aFull.school_logo_path);
+          if (logoBlob) logoBytes = new Uint8Array(await logoBlob.arrayBuffer());
+        } catch { /* ignore */ }
+      }
+      coverHandles = await renderPaperCover(ctx, aFull, logoBytes);
+      // Start exercises on a fresh page
+      newPage(ctx);
+    } else if (data.kind === "mark_scheme") {
       await renderCover(ctx, a, kindLabel[data.kind]);
     }
 
@@ -1142,7 +1157,21 @@ export const generatePaperPdf = createServerFn({ method: "POST" })
       renderTranscript(ctx, paper);
     }
 
+    // Overlay the page count on the cover now that the document is fully laid out.
+    if (coverHandles) {
+      const total = doc.getPageCount();
+      const txt = `This document has ${total} pages.`;
+      const w = bold.widthOfTextAtSize(txt, 10);
+      coverHandles.page.drawText(txt, {
+        x: (PAGE_W - w) / 2,
+        y: coverHandles.pageCountY,
+        size: 10,
+        font: bold,
+      });
+    }
+
     const bytes = await doc.save();
+
 
     // Upload to storage so the user can re-download without regenerating.
     const storagePath = `${a.id}/${data.kind}.pdf`;
