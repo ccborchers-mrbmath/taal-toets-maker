@@ -1034,13 +1034,15 @@ function CoverSettings({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Build a signed URL for the existing logo so the user can see it.
-  useState(() => {
-    if (!logoPath) return undefined;
+  useEffect(() => {
+    if (!logoPath) { setPreviewUrl(null); return; }
+    let alive = true;
     supabase.storage.from("paper-logos").createSignedUrl(logoPath, 3600).then(({ data }) => {
-      if (data?.signedUrl) setPreviewUrl(data.signedUrl);
+      if (alive && data?.signedUrl) setPreviewUrl(data.signedUrl);
     });
-    return undefined;
-  });
+    return () => { alive = false; };
+  }, [logoPath]);
+
 
   const onPick = async (file: File | null) => {
     if (!file) return;
