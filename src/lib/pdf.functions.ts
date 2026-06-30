@@ -285,28 +285,30 @@ async function renderPaperCover(
   }
 
 
-  // Cambridge Assessment block (right aligned)
-  const caLine1 = "Cambridge Assessment";
-  const caLine2 = "International Education";
-  const caSize = 12;
-  const caW1 = ctx.bold.widthOfTextAtSize(caLine1, caSize);
-  const caW2 = ctx.bold.widthOfTextAtSize(caLine2, caSize);
-  const caRight = PAGE_W - MARGIN;
-  // Small crest placeholder (square) to the left of the wordmark
-  const crestSize = 26;
-  const crestX = caRight - Math.max(caW1, caW2) - crestSize - 6;
-  page.drawRectangle({
-    x: crestX,
-    y: topY - 30,
-    width: crestSize,
-    height: crestSize,
-    borderColor: rgb(0.1, 0.15, 0.35),
-    borderWidth: 1,
-    color: rgb(0.1, 0.15, 0.35),
-  });
-  page.drawText("C", { x: crestX + 8, y: topY - 23, size: 16, font: ctx.bold, color: rgb(1, 1, 1) });
-  page.drawText(caLine1, { x: caRight - caW1, y: topY - 14, size: caSize, font: ctx.bold, color: rgb(0.1, 0.15, 0.35) });
-  page.drawText(caLine2, { x: caRight - caW2, y: topY - 28, size: caSize, font: ctx.bold, color: rgb(0.1, 0.15, 0.35) });
+  // Cambridge Assessment International Education wordmark (crest + text),
+  // right-aligned. Height matches the school-logo box so both top-band
+  // images align on the same baseline.
+  try {
+    const { cambridgeLogoBytes, CAMBRIDGE_LOGO_WIDTH, CAMBRIDGE_LOGO_HEIGHT } =
+      await import("./cambridge-logo");
+    const camEmbed = await ctx.doc.embedPng(cambridgeLogoBytes());
+    const camH = logoBoxH;
+    const camW = (CAMBRIDGE_LOGO_WIDTH / CAMBRIDGE_LOGO_HEIGHT) * camH;
+    page.drawImage(camEmbed, {
+      x: PAGE_W - MARGIN - camW,
+      y: topY - logoBoxH,
+      width: camW,
+      height: camH,
+    });
+  } catch {
+    // Fallback: plain text wordmark
+    const caRight = PAGE_W - MARGIN;
+    const caW1 = ctx.bold.widthOfTextAtSize("Cambridge Assessment", 12);
+    const caW2 = ctx.bold.widthOfTextAtSize("International Education", 12);
+    page.drawText("Cambridge Assessment", { x: caRight - caW1, y: topY - 14, size: 12, font: ctx.bold, color: rgb(0.1, 0.15, 0.35) });
+    page.drawText("International Education", { x: caRight - caW2, y: topY - 28, size: 12, font: ctx.bold, color: rgb(0.1, 0.15, 0.35) });
+  }
+
 
   // --- "Cambridge IGCSE™" title
   let y = topY - logoBoxH - 28;
