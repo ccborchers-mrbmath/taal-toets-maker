@@ -260,21 +260,13 @@ async function renderPaperCover(
   const topY = PAGE_H - MARGIN;
   const logoBoxW = 110;
   const logoBoxH = 60;
-  // School logo box
-  page.drawRectangle({
-    x: MARGIN,
-    y: topY - logoBoxH,
-    width: logoBoxW,
-    height: logoBoxH,
-    borderColor: rgb(0.15, 0.15, 0.2),
-    borderWidth: 0.8,
-  });
+  // School logo box (no border per spec — just placement)
   if (logoPng) {
     try {
       let embedded;
       try { embedded = await ctx.doc.embedPng(logoPng); }
       catch { embedded = await ctx.doc.embedJpg(logoPng); }
-      const scale = Math.min((logoBoxW - 6) / embedded.width, (logoBoxH - 6) / embedded.height);
+      const scale = Math.min(logoBoxW / embedded.width, logoBoxH / embedded.height);
       const w = embedded.width * scale;
       const h = embedded.height * scale;
       page.drawImage(embedded, {
@@ -291,6 +283,7 @@ async function renderPaperCover(
     page.drawText("School logo", { x: MARGIN + 8, y: topY - 24, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
     page.drawText("goes here", { x: MARGIN + 8, y: topY - 36, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
   }
+
 
   // Cambridge Assessment block (right aligned)
   const caLine1 = "Cambridge Assessment";
@@ -327,29 +320,29 @@ async function renderPaperCover(
   const codeText = a.paper_code || "0548/02";
   const codeW = ctx.bold.widthOfTextAtSize(codeText, 12);
   page.drawText(codeText, { x: PAGE_W - MARGIN - codeW, y, size: 12, font: ctx.bold });
-  // Date of assessment in the middle (right-of-subject)
+  // Date of assessment (bold) on same row as subject — replaces the
+  // grey "For examination from 2025" box from the legacy layout.
   if (a.date_of_assessment) {
     const dateText = `Date of assessment: ${a.date_of_assessment}`;
     const subjW = ctx.bold.widthOfTextAtSize(subject, 12);
-    page.drawText(dateText, { x: MARGIN + subjW + 18, y, size: 10, font: ctx.font, color: rgb(0.2, 0.2, 0.25) });
+    page.drawText(dateText, { x: MARGIN + subjW + 18, y, size: 10, font: ctx.bold });
   }
-  y -= 18;
+  y -= 16;
 
-  // Paper 2 Listening   [right: For examination from 2025 — boxed]
+  // Paper 2 Listening   [right: For examination from 2025 — plain bold, no box]
   page.drawText("Paper 2 Listening", { x: MARGIN, y, size: 11, font: ctx.font });
   const fromLabel = "For examination from 2025";
   const fromW = ctx.bold.widthOfTextAtSize(fromLabel, 10);
-  const fromBoxX = PAGE_W - MARGIN - fromW - 10;
-  page.drawRectangle({ x: fromBoxX, y: y - 3, width: fromW + 10, height: 15, color: rgb(0.85, 0.85, 0.85) });
-  page.drawText(fromLabel, { x: fromBoxX + 5, y: y, size: 10, font: ctx.bold });
-  y -= 18;
+  page.drawText(fromLabel, { x: PAGE_W - MARGIN - fromW, y, size: 10, font: ctx.bold });
+  y -= 16;
 
   // SPECIMEN PAPER    Approximately 50 minutes (including 6 minutes' transfer time)
   page.drawText("SPECIMEN PAPER", { x: MARGIN, y, size: 11, font: ctx.bold });
   const durText = "Approximately 50 minutes (including 6 minutes' transfer time)";
   const durW = ctx.bold.widthOfTextAtSize(durText, 10);
   page.drawText(durText, { x: PAGE_W - MARGIN - durW, y, size: 10, font: ctx.bold });
-  y -= 22;
+  y -= 18;
+
 
   // Body text
   ctx.y = y;
@@ -372,9 +365,19 @@ async function renderPaperCover(
   }
   ctx.y = ny - 6;
 
-  // INSTRUCTIONS
+  // Horizontal rule above INSTRUCTIONS (matches original specimen)
+  gap(ctx, 6);
+  page.drawLine({
+    start: { x: MARGIN, y: ctx.y },
+    end: { x: PAGE_W - MARGIN, y: ctx.y },
+    thickness: 0.6,
+    color: rgb(0.3, 0.3, 0.35),
+  });
   gap(ctx, 8);
+
+  // INSTRUCTIONS
   drawText(ctx, "INSTRUCTIONS", { size: 11, font: ctx.bold });
+  gap(ctx, 2);
   const instructions = [
     "There are 40 questions on this paper. Answer all questions.",
     "You will have 6 minutes to transfer your answers from the question paper onto the multiple choice answer sheet.",
@@ -394,13 +397,23 @@ async function renderPaperCover(
       page.drawText(lines[i], { x: MARGIN + 20, y: ly, size: 10, font: ctx.font });
       ly -= 12;
     }
-    ctx.y = ly + 12 - (lines.length * 12) - 4;
-    ctx.y -= 2;
+    // Advance to the line after the last rendered line (tight bullet spacing matching original).
+    ctx.y = ly + 12 - lines.length * 12 - 2;
   }
 
-  // INFORMATION
+  // Horizontal rule above INFORMATION
   gap(ctx, 8);
+  page.drawLine({
+    start: { x: MARGIN, y: ctx.y },
+    end: { x: PAGE_W - MARGIN, y: ctx.y },
+    thickness: 0.6,
+    color: rgb(0.3, 0.3, 0.35),
+  });
+  gap(ctx, 8);
+
+  // INFORMATION
   drawText(ctx, "INFORMATION", { size: 11, font: ctx.bold });
+  gap(ctx, 2);
   const info = [
     "The total mark for this paper is 40.",
     "Each correct answer will score one mark.",
@@ -410,8 +423,9 @@ async function renderPaperCover(
     ensure(ctx, 14);
     page.drawText("\u2022", { x: MARGIN + 6, y: ctx.y - 10, size: 11, font: ctx.font });
     page.drawText(it, { x: MARGIN + 20, y: ctx.y - 10, size: 10, font: ctx.font });
-    ctx.y -= 14;
+    ctx.y -= 12;
   }
+
 
   // Footer area: rule + page-count line + [Turn over
   const footerY = MARGIN + 28;
