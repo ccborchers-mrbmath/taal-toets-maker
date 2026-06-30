@@ -365,9 +365,19 @@ async function renderPaperCover(
   }
   ctx.y = ny - 6;
 
-  // INSTRUCTIONS
+  // Horizontal rule above INSTRUCTIONS (matches original specimen)
+  gap(ctx, 6);
+  page.drawLine({
+    start: { x: MARGIN, y: ctx.y },
+    end: { x: PAGE_W - MARGIN, y: ctx.y },
+    thickness: 0.6,
+    color: rgb(0.3, 0.3, 0.35),
+  });
   gap(ctx, 8);
+
+  // INSTRUCTIONS
   drawText(ctx, "INSTRUCTIONS", { size: 11, font: ctx.bold });
+  gap(ctx, 2);
   const instructions = [
     "There are 40 questions on this paper. Answer all questions.",
     "You will have 6 minutes to transfer your answers from the question paper onto the multiple choice answer sheet.",
@@ -387,13 +397,23 @@ async function renderPaperCover(
       page.drawText(lines[i], { x: MARGIN + 20, y: ly, size: 10, font: ctx.font });
       ly -= 12;
     }
-    ctx.y = ly + 12 - (lines.length * 12) - 4;
-    ctx.y -= 2;
+    // Advance to the line after the last rendered line (tight bullet spacing matching original).
+    ctx.y = ly + 12 - lines.length * 12 - 2;
   }
 
-  // INFORMATION
+  // Horizontal rule above INFORMATION
   gap(ctx, 8);
+  page.drawLine({
+    start: { x: MARGIN, y: ctx.y },
+    end: { x: PAGE_W - MARGIN, y: ctx.y },
+    thickness: 0.6,
+    color: rgb(0.3, 0.3, 0.35),
+  });
+  gap(ctx, 8);
+
+  // INFORMATION
   drawText(ctx, "INFORMATION", { size: 11, font: ctx.bold });
+  gap(ctx, 2);
   const info = [
     "The total mark for this paper is 40.",
     "Each correct answer will score one mark.",
@@ -403,8 +423,9 @@ async function renderPaperCover(
     ensure(ctx, 14);
     page.drawText("\u2022", { x: MARGIN + 6, y: ctx.y - 10, size: 11, font: ctx.font });
     page.drawText(it, { x: MARGIN + 20, y: ctx.y - 10, size: 10, font: ctx.font });
-    ctx.y -= 14;
+    ctx.y -= 12;
   }
+
 
   // Footer area: rule + page-count line + [Turn over
   const footerY = MARGIN + 28;
