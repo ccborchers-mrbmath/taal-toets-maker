@@ -386,16 +386,16 @@ async function renderPaperCover(
     "Dictionaries are not allowed.",
   ];
   for (const ins of instructions) {
-    ensure(ctx, 14);
-    page.drawText("\u2022", { x: MARGIN + 6, y: ctx.y - 10, size: 11, font: ctx.font });
     const lines = wrap(ctx.font, ins, 10, CONTENT_W - 24);
+    ensure(ctx, lines.length * 12 + 4);
+    page.drawText("\u2022", { x: MARGIN + 6, y: ctx.y - 10, size: 11, font: ctx.font });
     let ly = ctx.y - 10;
     for (let i = 0; i < lines.length; i++) {
       page.drawText(lines[i], { x: MARGIN + 20, y: ly, size: 10, font: ctx.font });
       ly -= 12;
     }
-    // Advance to the line after the last rendered line (tight bullet spacing matching original).
-    ctx.y = ly + 12 - lines.length * 12 - 2;
+    // Consistent 4pt gap between bullets regardless of wrapped line count.
+    ctx.y -= lines.length * 12 + 4;
   }
 
   // Horizontal rule above INFORMATION
