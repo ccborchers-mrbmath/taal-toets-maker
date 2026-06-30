@@ -56,6 +56,7 @@ export type Database = {
           brief: string | null
           created_at: string
           created_by: string
+          date_of_assessment: string | null
           full_audio_generated_at: string | null
           full_audio_path: string | null
           generation_error: string | null
@@ -68,6 +69,7 @@ export type Database = {
           paper_pdf_generated_at: string | null
           paper_pdf_path: string | null
           part_type: string
+          school_logo_path: string | null
           status: string
           subject_code: string
           theme_hint: string | null
@@ -81,6 +83,7 @@ export type Database = {
           brief?: string | null
           created_at?: string
           created_by: string
+          date_of_assessment?: string | null
           full_audio_generated_at?: string | null
           full_audio_path?: string | null
           generation_error?: string | null
@@ -93,6 +96,7 @@ export type Database = {
           paper_pdf_generated_at?: string | null
           paper_pdf_path?: string | null
           part_type?: string
+          school_logo_path?: string | null
           status?: string
           subject_code?: string
           theme_hint?: string | null
@@ -106,6 +110,7 @@ export type Database = {
           brief?: string | null
           created_at?: string
           created_by?: string
+          date_of_assessment?: string | null
           full_audio_generated_at?: string | null
           full_audio_path?: string | null
           generation_error?: string | null
@@ -118,6 +123,7 @@ export type Database = {
           paper_pdf_generated_at?: string | null
           paper_pdf_path?: string | null
           part_type?: string
+          school_logo_path?: string | null
           status?: string
           subject_code?: string
           theme_hint?: string | null

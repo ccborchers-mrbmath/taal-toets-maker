@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ArrowLeft, Check, Download, FileText, Headphones, ImageIcon, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -47,7 +47,10 @@ type FullPaper = {
     mark_scheme_pdf_path: string | null;
     transcript_pdf_path: string | null;
     full_audio_path: string | null;
+    school_logo_path: string | null;
+    date_of_assessment: string | null;
   };
+
 
   exercises: {
     id: string; number: number; kind: string; rubric: string;
@@ -84,7 +87,7 @@ function EditorContent() {
     queryFn: async () => {
       const { data: a, error } = await supabase
         .from("assessments")
-        .select("id,title,paper_code,status,level,part_type,generation_error,paper_pdf_path,mark_scheme_pdf_path,transcript_pdf_path,full_audio_path")
+        .select("id,title,paper_code,status,level,part_type,generation_error,paper_pdf_path,mark_scheme_pdf_path,transcript_pdf_path,full_audio_path,school_logo_path,date_of_assessment")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -243,6 +246,15 @@ function EditorContent() {
                   onChange={() => query.refetch()}
                 />
               </div>
+
+              <CoverSettings
+                assessmentId={id}
+                logoPath={assessment.school_logo_path}
+                dateOfAssessment={assessment.date_of_assessment}
+                paperCached={!!assessment.paper_pdf_path}
+                onChange={() => query.refetch()}
+              />
+
 
             </section>
           </div>
@@ -1001,5 +1013,152 @@ function FullAudioButton({
     </div>
   );
 }
+
+function CoverSettings({
+  assessmentId,
+  logoPath,
+  dateOfAssessment,
+  paperCached,
+  onChange,
+}: {
+  assessmentId: string;
+  logoPath: string | null;
+  dateOfAssessment: string | null;
+  paperCached: boolean;
+  onChange: () => void;
+}) {
+  const { locale } = useT();
+  const [uploading, setUploading] = useState(false);
+  const [date, setDate] = useState(dateOfAssessment ?? "");
+  const [savedDate, setSavedDate] = useState(dateOfAssessment ?? "");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Build a signed URL for the existing logo so the user can see it.
+  useEffect(() => {
+    if (!logoPath) { setPreviewUrl(null); return; }
+    let alive = true;
+    supabase.storage.from("paper-logos").createSignedUrl(logoPath, 3600).then(({ data }) => {
+      if (alive && data?.signedUrl) setPreviewUrl(data.signedUrl);
+    });
+    return () => { alive = false; };
+  }, [logoPath]);
+
+
+  const onPick = async (file: File | null) => {
+    if (!file) return;
+    if (!/^image\/(png|jpe?g)$/.test(file.type)) {
+      toast.error(locale === "af" ? "Slegs PNG of JPG" : "PNG or JPG only");
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error(locale === "af" ? "Maks 4 MB" : "Max 4 MB");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.type === "image/png" ? "png" : "jpg";
+      const path = `${assessmentId}/logo.${ext}`;
+      const buf = new Uint8Array(await file.arrayBuffer());
+      const { error: upErr } = await supabase.storage
+        .from("paper-logos")
+        .upload(path, buf, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { error: dbErr } = await supabase
+        .from("assessments")
+        .update({ school_logo_path: path })
+        .eq("id", assessmentId);
+      if (dbErr) throw dbErr;
+      const { data: signed } = await supabase.storage.from("paper-logos").createSignedUrl(path, 3600);
+      setPreviewUrl(signed?.signedUrl ?? null);
+      toast.success(locale === "af" ? "Skoollogo opgelaai" : "School logo uploaded");
+      if (paperCached) {
+        toast.message(locale === "af" ? "Druk ↻ langs Vraestel PDF om die voorblad te verfris." : "Press ↻ next to Question paper PDF to refresh the cover.");
+      }
+      onChange();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const saveDate = async () => {
+    try {
+      const { error } = await supabase
+        .from("assessments")
+        .update({ date_of_assessment: date.trim() || null })
+        .eq("id", assessmentId);
+      if (error) throw error;
+      setSavedDate(date);
+      toast.success(locale === "af" ? "Datum gestoor" : "Date saved");
+      onChange();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  return (
+    <div className="mt-6 rounded-md border border-border p-4">
+      <h3 className="text-sm font-semibold">
+        {locale === "af" ? "Voorblad-instellings (vraestel)" : "Cover page settings (question paper)"}
+      </h3>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {locale === "af"
+          ? "Laai jou skoollogo op en stel die datum van assessering. Hierdie verskyn op die vraestel se voorblad."
+          : "Upload your school logo and set the date of assessment. These appear on the question paper cover."}
+      </p>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="text-xs font-medium">
+            {locale === "af" ? "Skoollogo (PNG of JPG)" : "School logo (PNG or JPG)"}
+          </label>
+          <div className="mt-2 flex items-center gap-3">
+            <div className="flex h-16 w-28 items-center justify-center overflow-hidden rounded border border-border bg-muted/30">
+              {previewUrl ? (
+                <img src={previewUrl} alt="School logo" className="max-h-full max-w-full object-contain" />
+              ) : (
+                <span className="text-[10px] text-muted-foreground">
+                  {locale === "af" ? "Geen logo" : "No logo"}
+                </span>
+              )}
+            </div>
+            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted/40">
+              {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
+              <span>{uploading ? (locale === "af" ? "Laai op…" : "Uploading…") : (locale === "af" ? "Kies lêer" : "Choose file")}</span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg"
+                className="hidden"
+                disabled={uploading}
+                onChange={(e) => onPick(e.target.files?.[0] ?? null)}
+              />
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="cov-date" className="text-xs font-medium">
+            {locale === "af" ? "Datum van assessering" : "Date of assessment"}
+          </label>
+          <div className="mt-2 flex gap-2">
+            <input
+              id="cov-date"
+              type="text"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              placeholder={locale === "af" ? "Bv. 15 Oktober 2026" : "e.g. 15 October 2026"}
+              className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+            />
+            <Button size="sm" variant="outline" onClick={saveDate} disabled={date === savedDate}>
+              {locale === "af" ? "Stoor" : "Save"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 
