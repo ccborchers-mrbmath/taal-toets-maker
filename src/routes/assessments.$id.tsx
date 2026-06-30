@@ -247,6 +247,15 @@ function EditorContent() {
                 />
               </div>
 
+              <CoverSettings
+                assessmentId={id}
+                logoPath={assessment.school_logo_path}
+                dateOfAssessment={assessment.date_of_assessment}
+                paperCached={!!assessment.paper_pdf_path}
+                onChange={() => query.refetch()}
+              />
+
+
             </section>
           </div>
         )}
