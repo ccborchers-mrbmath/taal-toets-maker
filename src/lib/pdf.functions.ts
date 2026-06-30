@@ -241,8 +241,9 @@ function exTitle(num: number) {
 }
 
 async function renderPaper(ctx: Ctx, p: FullPaper, supabaseAdmin: SupabaseAdminLike) {
-  for (const ex of p.exercises) {
-    ensure(ctx, 60);
+  for (let exi = 0; exi < p.exercises.length; exi++) {
+    const ex = p.exercises[exi];
+    if (exi > 0) newPage(ctx);
     drawText(ctx, exTitle(ex.number), { size: 14, font: ctx.bold });
     gap(ctx, 2);
     drawText(ctx, ex.rubric, { size: 10, color: rgb(0.3, 0.3, 0.35) });
