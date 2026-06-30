@@ -236,6 +236,207 @@ async function renderCover(ctx: Ctx, a: FullPaper["assessment"], kindLabel: stri
   rule(ctx);
 }
 
+// ---------------------------------------------------------------------------
+// Cambridge-style cover page for the question paper. Mirrors the 0548/02
+// specimen layout (school-logo block top-left, Cambridge Assessment block
+// right-aligned, title row with date + paper code, instructions/information
+// sections, and a page-count line that is filled in after the full document
+// has been laid out).
+// ---------------------------------------------------------------------------
+
+type CoverHandles = {
+  page: PDFPage;
+  pageCountY: number;
+  pageCountX: number;
+};
+
+async function renderPaperCover(
+  ctx: Ctx,
+  a: FullPaper["assessment"] & { date_of_assessment?: string | null },
+  logoPng: Uint8Array | null,
+): Promise<CoverHandles> {
+  const page = ctx.page;
+  // --- Top band: school logo box (left) + Cambridge Assessment block (right)
+  const topY = PAGE_H - MARGIN;
+  const logoBoxW = 110;
+  const logoBoxH = 60;
+  // School logo box
+  page.drawRectangle({
+    x: MARGIN,
+    y: topY - logoBoxH,
+    width: logoBoxW,
+    height: logoBoxH,
+    borderColor: rgb(0.15, 0.15, 0.2),
+    borderWidth: 0.8,
+  });
+  if (logoPng) {
+    try {
+      let embedded;
+      try { embedded = await ctx.doc.embedPng(logoPng); }
+      catch { embedded = await ctx.doc.embedJpg(logoPng); }
+      const scale = Math.min((logoBoxW - 6) / embedded.width, (logoBoxH - 6) / embedded.height);
+      const w = embedded.width * scale;
+      const h = embedded.height * scale;
+      page.drawImage(embedded, {
+        x: MARGIN + (logoBoxW - w) / 2,
+        y: topY - logoBoxH + (logoBoxH - h) / 2,
+        width: w,
+        height: h,
+      });
+    } catch {
+      page.drawText("School logo", { x: MARGIN + 8, y: topY - 24, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
+      page.drawText("goes here", { x: MARGIN + 8, y: topY - 36, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
+    }
+  } else {
+    page.drawText("School logo", { x: MARGIN + 8, y: topY - 24, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
+    page.drawText("goes here", { x: MARGIN + 8, y: topY - 36, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
+  }
+
+  // Cambridge Assessment block (right aligned)
+  const caLine1 = "Cambridge Assessment";
+  const caLine2 = "International Education";
+  const caSize = 12;
+  const caW1 = ctx.bold.widthOfTextAtSize(caLine1, caSize);
+  const caW2 = ctx.bold.widthOfTextAtSize(caLine2, caSize);
+  const caRight = PAGE_W - MARGIN;
+  // Small crest placeholder (square) to the left of the wordmark
+  const crestSize = 26;
+  const crestX = caRight - Math.max(caW1, caW2) - crestSize - 6;
+  page.drawRectangle({
+    x: crestX,
+    y: topY - 30,
+    width: crestSize,
+    height: crestSize,
+    borderColor: rgb(0.1, 0.15, 0.35),
+    borderWidth: 1,
+    color: rgb(0.1, 0.15, 0.35),
+  });
+  page.drawText("C", { x: crestX + 8, y: topY - 23, size: 16, font: ctx.bold, color: rgb(1, 1, 1) });
+  page.drawText(caLine1, { x: caRight - caW1, y: topY - 14, size: caSize, font: ctx.bold, color: rgb(0.1, 0.15, 0.35) });
+  page.drawText(caLine2, { x: caRight - caW2, y: topY - 28, size: caSize, font: ctx.bold, color: rgb(0.1, 0.15, 0.35) });
+
+  // --- "Cambridge IGCSE™" title
+  let y = topY - logoBoxH - 28;
+  page.drawText("Cambridge IGCSE\u2122", { x: MARGIN, y, size: 22, font: ctx.bold });
+  y -= 26;
+
+  // --- Subject row: "AFRIKAANS AS A SECOND LANGUAGE"   [date]   0548/02
+  const subject = "AFRIKAANS AS A SECOND LANGUAGE";
+  page.drawText(subject, { x: MARGIN, y, size: 12, font: ctx.bold });
+  // Paper code far right
+  const codeText = a.paper_code || "0548/02";
+  const codeW = ctx.bold.widthOfTextAtSize(codeText, 12);
+  page.drawText(codeText, { x: PAGE_W - MARGIN - codeW, y, size: 12, font: ctx.bold });
+  // Date of assessment in the middle (right-of-subject)
+  if (a.date_of_assessment) {
+    const dateText = `Date of assessment: ${a.date_of_assessment}`;
+    const subjW = ctx.bold.widthOfTextAtSize(subject, 12);
+    page.drawText(dateText, { x: MARGIN + subjW + 18, y, size: 10, font: ctx.font, color: rgb(0.2, 0.2, 0.25) });
+  }
+  y -= 18;
+
+  // Paper 2 Listening   [right: For examination from 2025 — boxed]
+  page.drawText("Paper 2 Listening", { x: MARGIN, y, size: 11, font: ctx.font });
+  const fromLabel = "For examination from 2025";
+  const fromW = ctx.bold.widthOfTextAtSize(fromLabel, 10);
+  const fromBoxX = PAGE_W - MARGIN - fromW - 10;
+  page.drawRectangle({ x: fromBoxX, y: y - 3, width: fromW + 10, height: 15, color: rgb(0.85, 0.85, 0.85) });
+  page.drawText(fromLabel, { x: fromBoxX + 5, y: y, size: 10, font: ctx.bold });
+  y -= 18;
+
+  // SPECIMEN PAPER    Approximately 50 minutes (including 6 minutes' transfer time)
+  page.drawText("SPECIMEN PAPER", { x: MARGIN, y, size: 11, font: ctx.bold });
+  const durText = "Approximately 50 minutes (including 6 minutes' transfer time)";
+  const durW = ctx.bold.widthOfTextAtSize(durText, 10);
+  page.drawText(durText, { x: PAGE_W - MARGIN - durW, y, size: 10, font: ctx.bold });
+  y -= 22;
+
+  // Body text
+  ctx.y = y;
+  drawText(ctx, "You must transfer your answers onto the multiple choice answer sheet.", { size: 10 });
+  gap(ctx, 10);
+
+  // "You will need:" block
+  const needLabelW = ctx.font.widthOfTextAtSize("You will need:", 10);
+  page.drawText("You will need:", { x: MARGIN, y: ctx.y - 10, size: 10, font: ctx.font });
+  const needX = MARGIN + needLabelW + 8;
+  const needs = [
+    "Multiple choice answer sheet",
+    "Soft clean eraser",
+    "Soft pencil (type B or HB is recommended)",
+  ];
+  let ny = ctx.y - 10;
+  for (const n of needs) {
+    page.drawText(n, { x: needX, y: ny, size: 10, font: ctx.font });
+    ny -= 12;
+  }
+  ctx.y = ny - 6;
+
+  // INSTRUCTIONS
+  gap(ctx, 8);
+  drawText(ctx, "INSTRUCTIONS", { size: 11, font: ctx.bold });
+  const instructions = [
+    "There are 40 questions on this paper. Answer all questions.",
+    "You will have 6 minutes to transfer your answers from the question paper onto the multiple choice answer sheet.",
+    "Follow the instructions on the multiple choice answer sheet. Shade one letter only for Questions 1 to 40.",
+    "Write in soft pencil.",
+    "Write your name, centre number and candidate number on the multiple choice answer sheet in the spaces provided unless this has been done for you.",
+    "Do not use correction fluid.",
+    "Do not write on any bar codes.",
+    "Dictionaries are not allowed.",
+  ];
+  for (const ins of instructions) {
+    ensure(ctx, 14);
+    page.drawText("\u2022", { x: MARGIN + 6, y: ctx.y - 10, size: 11, font: ctx.font });
+    const lines = wrap(ctx.font, ins, 10, CONTENT_W - 24);
+    let ly = ctx.y - 10;
+    for (let i = 0; i < lines.length; i++) {
+      page.drawText(lines[i], { x: MARGIN + 20, y: ly, size: 10, font: ctx.font });
+      ly -= 12;
+    }
+    ctx.y = ly + 12 - (lines.length * 12) - 4;
+    ctx.y -= 2;
+  }
+
+  // INFORMATION
+  gap(ctx, 8);
+  drawText(ctx, "INFORMATION", { size: 11, font: ctx.bold });
+  const info = [
+    "The total mark for this paper is 40.",
+    "Each correct answer will score one mark.",
+    "Any rough working should be done on this question paper.",
+  ];
+  for (const it of info) {
+    ensure(ctx, 14);
+    page.drawText("\u2022", { x: MARGIN + 6, y: ctx.y - 10, size: 11, font: ctx.font });
+    page.drawText(it, { x: MARGIN + 20, y: ctx.y - 10, size: 10, font: ctx.font });
+    ctx.y -= 14;
+  }
+
+  // Footer area: rule + page-count line + [Turn over
+  const footerY = MARGIN + 28;
+  page.drawLine({
+    start: { x: MARGIN, y: footerY + 18 },
+    end: { x: PAGE_W - MARGIN, y: footerY + 18 },
+    thickness: 0.6,
+    color: rgb(0.4, 0.4, 0.4),
+  });
+  const pageCountPlaceholder = "This document has  __ pages.";
+  const pcW = ctx.font.widthOfTextAtSize(pageCountPlaceholder, 10);
+  const pcX = (PAGE_W - pcW) / 2;
+  // We draw the final string later once we know the count; capture the
+  // location so the caller can overlay the real number.
+  page.drawText("[Turn over", {
+    x: PAGE_W - MARGIN - ctx.bold.widthOfTextAtSize("[Turn over", 10),
+    y: footerY - 6,
+    size: 10,
+    font: ctx.bold,
+  });
+
+  return { page, pageCountY: footerY, pageCountX: pcX };
+}
+
+
 function exTitle(num: number) {
   return `Oefening ${num}`;
 }
