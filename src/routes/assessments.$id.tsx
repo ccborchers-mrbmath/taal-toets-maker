@@ -164,7 +164,11 @@ function EditorContent() {
           onGenerate={run}
           generating={isGenerating}
           audioInFlight={audioInFlight}
+          paperPdfDone={!!assessment.paper_pdf_path}
+          markSchemePdfDone={!!assessment.mark_scheme_pdf_path}
+          transcriptPdfDone={!!assessment.transcript_pdf_path}
         />
+
 
         {/* Action bar */}
         <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -704,6 +708,9 @@ function WorkflowStepper({
   onGenerate,
   generating,
   audioInFlight,
+  paperPdfDone,
+  markSchemePdfDone,
+  transcriptPdfDone,
 }: {
   locale: "af" | "en";
   status: string;
@@ -711,7 +718,11 @@ function WorkflowStepper({
   onGenerate: () => void;
   generating: boolean;
   audioInFlight: boolean;
+  paperPdfDone: boolean;
+  markSchemePdfDone: boolean;
+  transcriptPdfDone: boolean;
 }) {
+
   const isReady = status === "ready" && exercises.length > 0;
   const isFailed = status === "failed";
 
@@ -756,7 +767,15 @@ function WorkflowStepper({
     : doneAudio > 0
     ? "done"
     : "pending";
-  const pdfState: StepState = !isReady ? "locked" : "pending";
+  const pdfDoneCount = [paperPdfDone, markSchemePdfDone, transcriptPdfDone].filter(Boolean).length;
+  const pdfState: StepState = !isReady
+    ? "locked"
+    : pdfDoneCount === 3
+    ? "done"
+    : pdfDoneCount > 0
+    ? "active"
+    : "pending";
+
 
   const steps: Array<{
     key: string;
@@ -839,10 +858,15 @@ function WorkflowStepper({
       sub:
         pdfState === "locked"
           ? t("Wag op teks", "Waiting on text")
+          : pdfState === "done"
+          ? t("Alle 3 PDF's gereed", "All 3 PDFs ready")
+          : pdfState === "active"
+          ? t(`${pdfDoneCount}/3 PDF's gereed`, `${pdfDoneCount}/3 PDFs ready`)
           : t("Laai vraestel, memo & transkripsie af", "Download paper, mark scheme & transcript"),
       state: pdfState,
       action:
-        pdfState === "pending"
+        pdfState === "pending" || pdfState === "active" || pdfState === "done"
+
           ? {
               label: t("Spring na uitvoere", "Jump to exports"),
               onClick: () => {
