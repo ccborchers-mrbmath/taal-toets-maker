@@ -320,29 +320,29 @@ async function renderPaperCover(
   const codeText = a.paper_code || "0548/02";
   const codeW = ctx.bold.widthOfTextAtSize(codeText, 12);
   page.drawText(codeText, { x: PAGE_W - MARGIN - codeW, y, size: 12, font: ctx.bold });
-  // Date of assessment in the middle (right-of-subject)
+  // Date of assessment (bold) on same row as subject — replaces the
+  // grey "For examination from 2025" box from the legacy layout.
   if (a.date_of_assessment) {
     const dateText = `Date of assessment: ${a.date_of_assessment}`;
     const subjW = ctx.bold.widthOfTextAtSize(subject, 12);
-    page.drawText(dateText, { x: MARGIN + subjW + 18, y, size: 10, font: ctx.font, color: rgb(0.2, 0.2, 0.25) });
+    page.drawText(dateText, { x: MARGIN + subjW + 18, y, size: 10, font: ctx.bold });
   }
-  y -= 18;
+  y -= 16;
 
-  // Paper 2 Listening   [right: For examination from 2025 — boxed]
+  // Paper 2 Listening   [right: For examination from 2025 — plain bold, no box]
   page.drawText("Paper 2 Listening", { x: MARGIN, y, size: 11, font: ctx.font });
   const fromLabel = "For examination from 2025";
   const fromW = ctx.bold.widthOfTextAtSize(fromLabel, 10);
-  const fromBoxX = PAGE_W - MARGIN - fromW - 10;
-  page.drawRectangle({ x: fromBoxX, y: y - 3, width: fromW + 10, height: 15, color: rgb(0.85, 0.85, 0.85) });
-  page.drawText(fromLabel, { x: fromBoxX + 5, y: y, size: 10, font: ctx.bold });
-  y -= 18;
+  page.drawText(fromLabel, { x: PAGE_W - MARGIN - fromW, y, size: 10, font: ctx.bold });
+  y -= 16;
 
   // SPECIMEN PAPER    Approximately 50 minutes (including 6 minutes' transfer time)
   page.drawText("SPECIMEN PAPER", { x: MARGIN, y, size: 11, font: ctx.bold });
   const durText = "Approximately 50 minutes (including 6 minutes' transfer time)";
   const durW = ctx.bold.widthOfTextAtSize(durText, 10);
   page.drawText(durText, { x: PAGE_W - MARGIN - durW, y, size: 10, font: ctx.bold });
-  y -= 22;
+  y -= 18;
+
 
   // Body text
   ctx.y = y;
