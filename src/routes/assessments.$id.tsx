@@ -858,10 +858,15 @@ function WorkflowStepper({
       sub:
         pdfState === "locked"
           ? t("Wag op teks", "Waiting on text")
+          : pdfState === "done"
+          ? t("Alle 3 PDF's gereed", "All 3 PDFs ready")
+          : pdfState === "active"
+          ? t(`${pdfDoneCount}/3 PDF's gereed`, `${pdfDoneCount}/3 PDFs ready`)
           : t("Laai vraestel, memo & transkripsie af", "Download paper, mark scheme & transcript"),
       state: pdfState,
       action:
-        pdfState === "pending"
+        pdfState === "pending" || pdfState === "active" || pdfState === "done"
+
           ? {
               label: t("Spring na uitvoere", "Jump to exports"),
               onClick: () => {
