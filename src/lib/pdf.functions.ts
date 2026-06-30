@@ -261,35 +261,59 @@ async function renderPaper(ctx: Ctx, p: FullPaper, supabaseAdmin: SupabaseAdminL
     }
 
     const sortedQs = [...ex.questions].sort((a, b) => a.number - b.number);
-    for (const q of sortedQs) {
-      ensure(ctx, 30);
-      gap(ctx, 4);
-      drawText(ctx, `${q.number}.  ${q.stem}`, { size: 10.5, font: ctx.bold });
-      gap(ctx, 2);
-
+    for (let qi = 0; qi < sortedQs.length; qi++) {
+      const q = sortedQs[qi];
       const opts = [...q.question_options].sort((a, b) => a.letter.localeCompare(b.letter));
       const hasImages = opts.some((o) => o.image_prompt);
 
+      // --- Pre-measure so the whole sub-question stays on one page ---
+      const stemSize = 10.5;
+      const stemLH = 13;
+      const stemLines = wrap(ctx.bold, `Vraag ${q.number}.  ${q.stem}`, stemSize, CONTENT_W);
+      const stemH = stemLines.length * stemLH;
+
+      const CHECKBOX = 14; // size of the answer block
+      const MARKS_H = 14;
+      let blockH = stemH + 8; // stem + small gap below stem
+
+      const cols = opts.length;
+      const COL_GAP = 12;
+      const colW = hasImages ? (CONTENT_W - (cols - 1) * COL_GAP) / cols : 0;
+      const imgH = hasImages ? colW : 0;
+
       if (hasImages) {
-        // 4 picture options in a row
-        const cols = opts.length;
-        const colW = (CONTENT_W - (cols - 1) * 8) / cols;
-        const imgH = colW; // square
-        ensure(ctx, imgH + 22);
+        blockH += imgH + 10 /*letter row gap*/ + 14 /*letter*/ + 6 + CHECKBOX + MARKS_H;
+      } else {
+        // each option line: text + right-aligned checkbox, with breathing room
+        const OPT_ROW = Math.max(CHECKBOX, 14) + 10; // 24pt per option
+        blockH += opts.length * OPT_ROW + MARKS_H;
+      }
+      const INTER_Q_GAP = 14;
+
+      // Guarantee no mid-question page break (unless the block alone exceeds a page).
+      if (blockH < PAGE_H - MARGIN * 2) {
+        ensure(ctx, blockH);
+      }
+      gap(ctx, qi === 0 ? 4 : INTER_Q_GAP);
+
+      // Stem
+      drawText(ctx, `Vraag ${q.number}.  ${q.stem}`, { size: stemSize, font: ctx.bold, lineGap: stemLH - stemSize });
+      gap(ctx, 4);
+
+      if (hasImages) {
         const rowTop = ctx.y;
         for (let i = 0; i < opts.length; i++) {
           const o = opts[i];
-          const x = MARGIN + i * (colW + 8);
+          const x = MARGIN + i * (colW + COL_GAP);
           // border
           ctx.page.drawRectangle({
             x,
             y: rowTop - imgH,
             width: colW,
             height: imgH,
-            borderColor: rgb(0.6, 0.55, 0.45),
+            borderColor: rgb(0.55, 0.5, 0.4),
             borderWidth: 0.6,
           });
-          // image
           const png = await tryDownloadOptionImage(supabaseAdmin, p.assessment.id, o.id);
           if (png) {
             try {
@@ -314,27 +338,94 @@ async function renderPaper(ctx: Ctx, p: FullPaper, supabaseAdmin: SupabaseAdminL
               ty -= 9;
             }
           }
-          // letter badge
+          // Letter centred under image
+          const letterY = rowTop - imgH - 18;
+          const letterW = ctx.bold.widthOfTextAtSize(o.letter, 11);
           ctx.page.drawText(o.letter, {
-            x: x + 4,
-            y: rowTop - imgH - 12,
-            size: 10,
+            x: x + (colW - letterW) / 2,
+            y: letterY,
+            size: 11,
             font: ctx.bold,
           });
+          // Optional caption under letter (if there's also a text label)
           if (o.text) {
-            ctx.page.drawText(sanitize(o.text), {
-              x: x + 16,
-              y: rowTop - imgH - 12,
+            const cap = sanitize(o.text);
+            const capW = ctx.font.widthOfTextAtSize(cap, 9);
+            ctx.page.drawText(cap, {
+              x: x + Math.max(0, (colW - capW) / 2),
+              y: letterY - 11,
               size: 9,
               font: ctx.font,
+              color: rgb(0.25, 0.25, 0.3),
             });
           }
+          // Checkbox centred below letter
+          const boxX = x + (colW - CHECKBOX) / 2;
+          const boxY = letterY - (o.text ? 16 : 6) - CHECKBOX;
+          ctx.page.drawRectangle({
+            x: boxX,
+            y: boxY,
+            width: CHECKBOX,
+            height: CHECKBOX,
+            borderColor: rgb(0.15, 0.15, 0.2),
+            borderWidth: 0.9,
+          });
         }
-        ctx.y = rowTop - imgH - 20;
+        ctx.y = rowTop - imgH - 18 /*letter*/ - (opts.some((o) => o.text) ? 16 : 6) - CHECKBOX - 6;
+        // [1] marks indicator right-aligned
+        const marksW = ctx.font.widthOfTextAtSize("[1]", 9.5);
+        ctx.page.drawText("[1]", {
+          x: PAGE_W - MARGIN - marksW,
+          y: ctx.y - 10,
+          size: 9.5,
+          font: ctx.font,
+          color: rgb(0.3, 0.3, 0.35),
+        });
+        ctx.y -= MARKS_H;
       } else {
+        // Text MCQ — letter + text on the left, checkbox right-aligned.
+        const OPT_ROW = Math.max(CHECKBOX, 14) + 10;
+        const labelX = MARGIN + 18;
+        const textX = labelX + 18;
+        const boxX = PAGE_W - MARGIN - CHECKBOX;
+        const textMaxW = boxX - 12 - textX;
         for (const o of opts) {
-          drawText(ctx, `${o.letter}   ${o.text ?? ""}`, { size: 10, x: MARGIN + 18 });
+          const rowTop = ctx.y;
+          // Letter
+          ctx.page.drawText(o.letter, {
+            x: labelX,
+            y: rowTop - 11,
+            size: 10.5,
+            font: ctx.bold,
+          });
+          // Text (wrap if needed)
+          const lines = wrap(ctx.font, o.text ?? "", 10.5, textMaxW);
+          let ty = rowTop - 11;
+          for (const ln of lines) {
+            ctx.page.drawText(ln, { x: textX, y: ty, size: 10.5, font: ctx.font });
+            ty -= 13;
+          }
+          // Checkbox vertically centred against first line
+          ctx.page.drawRectangle({
+            x: boxX,
+            y: rowTop - 13,
+            width: CHECKBOX,
+            height: CHECKBOX,
+            borderColor: rgb(0.15, 0.15, 0.2),
+            borderWidth: 0.9,
+          });
+          ctx.y -= Math.max(OPT_ROW, (lines.length - 1) * 13 + OPT_ROW);
         }
+        // [1] marks
+        const marksW = ctx.font.widthOfTextAtSize("[1]", 9.5);
+        ctx.page.drawText("[1]", {
+          x: PAGE_W - MARGIN - marksW,
+          y: ctx.y - 10,
+          size: 9.5,
+          font: ctx.font,
+          color: rgb(0.3, 0.3, 0.35),
+        });
+        ctx.y -= MARKS_H;
       }
     }
     rule(ctx);
