@@ -260,21 +260,13 @@ async function renderPaperCover(
   const topY = PAGE_H - MARGIN;
   const logoBoxW = 110;
   const logoBoxH = 60;
-  // School logo box
-  page.drawRectangle({
-    x: MARGIN,
-    y: topY - logoBoxH,
-    width: logoBoxW,
-    height: logoBoxH,
-    borderColor: rgb(0.15, 0.15, 0.2),
-    borderWidth: 0.8,
-  });
+  // School logo box (no border per spec — just placement)
   if (logoPng) {
     try {
       let embedded;
       try { embedded = await ctx.doc.embedPng(logoPng); }
       catch { embedded = await ctx.doc.embedJpg(logoPng); }
-      const scale = Math.min((logoBoxW - 6) / embedded.width, (logoBoxH - 6) / embedded.height);
+      const scale = Math.min(logoBoxW / embedded.width, logoBoxH / embedded.height);
       const w = embedded.width * scale;
       const h = embedded.height * scale;
       page.drawImage(embedded, {
@@ -291,6 +283,7 @@ async function renderPaperCover(
     page.drawText("School logo", { x: MARGIN + 8, y: topY - 24, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
     page.drawText("goes here", { x: MARGIN + 8, y: topY - 36, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
   }
+
 
   // Cambridge Assessment block (right aligned)
   const caLine1 = "Cambridge Assessment";
