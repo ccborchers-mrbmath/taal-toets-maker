@@ -1039,7 +1039,7 @@ export const generatePaperPdf = createServerFn({ method: "POST" })
 
     const { data: aRaw, error: aErr } = await supabase
       .from("assessments")
-      .select("id,title,paper_code,level,status,paper_pdf_path,mark_scheme_pdf_path,transcript_pdf_path")
+      .select("id,title,paper_code,level,status,paper_pdf_path,mark_scheme_pdf_path,transcript_pdf_path,school_logo_path,date_of_assessment")
       .eq("id", data.assessment_id)
       .maybeSingle();
     if (aErr) throw new Error(aErr.message);
@@ -1048,8 +1048,11 @@ export const generatePaperPdf = createServerFn({ method: "POST" })
       paper_pdf_path: string | null;
       mark_scheme_pdf_path: string | null;
       transcript_pdf_path: string | null;
+      school_logo_path: string | null;
+      date_of_assessment: string | null;
     };
     const a = aFull as FullPaper["assessment"];
+
 
     const safeTitle = aFull.title.replace(/[^\w\-]+/g, "_").slice(0, 60);
     const suffix = { paper: "vraestel", mark_scheme: "memorandum", transcript: "transkripsie" }[data.kind];
