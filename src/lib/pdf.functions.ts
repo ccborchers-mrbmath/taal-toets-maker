@@ -888,15 +888,16 @@ function renderTranscript(ctx: Ctx, p: FullPaper) {
       );
       drawPause(ctx, "00'05\"");
     } else {
+      drawNarratorLine(ctx, `Hierdie is die einde van oefening ${ex.number}.`, { bold: true });
       drawNarratorLine(
         ctx,
-        "Hierdie is die einde van die toets. Jy het nou vyf minute om jou antwoorde na die antwoordblad oor te dra.",
-        { bold: true },
+        "Jy het nou 6 minute om jou antwoorde op die antwoordblad te skryf. Jy sal gewaarsku word wanneer daar nog net 1 minuut oor is.",
       );
       drawPause(ctx, "05'00\"");
-      drawNarratorLine(ctx, "Jy het nou een minuut oor.");
+      drawNarratorLine(ctx, "Daar is nou 1 minuut oor.");
       drawPause(ctx, "01'00\"");
-      drawNarratorLine(ctx, "Sit nou jou penne neer. Dit is die einde van die eksamen.", { bold: true });
+      drawNarratorLine(ctx, "Dit is nou die einde van hierdie vraestel.", { bold: true });
+      drawNarratorLine(ctx, "This is the end of the examination.", { bold: true });
     }
   }
 }
