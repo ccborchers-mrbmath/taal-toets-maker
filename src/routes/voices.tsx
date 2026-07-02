@@ -197,7 +197,8 @@ function VoicesContent() {
   async function preview(voice_id: string, settings?: CastVoice["voice_settings"]) {
     setPreviewing(voice_id);
     try {
-      const res = await previewVoice({ data: { voice_id, voice_settings: settings } });
+      const sample = SAMPLES.find((s) => s.key === sampleKey)?.text;
+      const res = await previewVoice({ data: { voice_id, voice_settings: settings, sample } });
       const audio = new Audio(`data:${res.mime};base64,${res.base64}`);
       await audio.play();
     } catch (e) {
