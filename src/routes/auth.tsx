@@ -34,10 +34,15 @@ function AuthPage() {
     if (!loading && user) navigate({ to: "/dashboard", replace: true });
   }, [loading, user, navigate]);
 
+  const ALLOWED_EMAILS = new Set(["burger.tammy@gmail.com", "ccborchers@gmail.com"]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
+      if (!ALLOWED_EMAILS.has(email.trim().toLowerCase())) {
+        throw new Error("Access is currently restricted. Please contact the administrator.");
+      }
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email,
