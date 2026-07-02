@@ -150,7 +150,10 @@ function EditorContent() {
   }
 
   const { assessment, exercises } = query.data;
-  const isGenerating = assessment.status === "generating" || generating;
+  // While `kicked=1`, treat "draft" as "generation kick-off in flight" so
+  // the Generate CTA is suppressed (prevents the user from double-clicking
+  // and being charged a second credit before the server flips status).
+  const isGenerating = assessment.status === "generating" || generating || (kicked && assessment.status === "draft");
   const isFailed = assessment.status === "failed";
   const isReady = assessment.status === "ready" && exercises.length > 0;
   const audioInFlight = audioBusyIds.size > 0;
