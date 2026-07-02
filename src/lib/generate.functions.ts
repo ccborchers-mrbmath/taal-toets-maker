@@ -71,13 +71,17 @@ const EXERCISE_BRIEFS: Record<ExerciseNum, {
 
 const turnSchema = {
   type: "object",
+  description:
+    "One spoken turn in the recording. On the FIRST turn of each distinct speaker within an item, also supply `role_gloss` — a short Afrikaans role label (1–4 words) matching the specimen (e.g. 'kliënt', 'tienerseun', 'mansonderwyser', 'radio-omroeper', '16-jarige meisie'). Do NOT include gender/age/accent voice-casting notes here — those belong in `speakers_meta`.",
   properties: {
     speaker: { type: "string", description: "Short label, e.g. 'M', 'V', 'M1', 'Onderhoudvoerder', or first name." },
     text: { type: "string" },
+    role_gloss: { type: "string", description: "Optional 1–4 word Afrikaans role gloss for this speaker (first turn per speaker per item)." },
   },
   required: ["speaker", "text"],
   additionalProperties: false,
 } as const;
+
 
 const speakersMetaSchema = {
   type: "array",
