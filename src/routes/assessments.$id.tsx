@@ -109,9 +109,16 @@ function EditorContent() {
     },
     refetchInterval: (q) => {
       const s = q.state.data?.assessment?.status;
-      return s === "generating" ? 2500 : false;
+      // Poll while generation is in flight. `kicked=1` (set by the "new
+      // paper" flow) covers the race where the server hasn't flipped
+      // status to "generating" yet — otherwise the initial fetch sees
+      // "draft" and polling would never start.
+      if (s === "generating") return 2500;
+      if (kicked && s === "draft") return 2000;
+      return false;
     },
   });
+
 
   const run = async () => {
     setGenerating(true);
