@@ -477,19 +477,6 @@ Vraagnommers moet in die reeks ${spec.numberRange[0]}–${spec.numberRange[1]} w
   throw lastErr instanceof Error ? lastErr : new Error(`AI gateway error (Ex ${opts.exNum})`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function __unused_legacy_generate_exercise_tail() {
-
-
-  return {
-    number: opts.exNum,
-    type: spec.type,
-    title: `Oefening ${opts.exNum}`,
-    instructions: spec.instructions,
-    reading_pause_s: spec.readingPause,
-    ...args,
-  };
-}
 
 // Filter the paper-wide cast to the voices flagged suitable for a given exercise.
 function castForExercise(all: (CastLite & { suitability: Record<string, boolean | undefined> })[], exNum: ExerciseNum): CastLite[] {
