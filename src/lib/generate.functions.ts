@@ -655,15 +655,20 @@ export const generatePaper = createServerFn({ method: "POST" })
     const exNums: ExerciseNum[] =
       partType === "full_paper" ? [1, 2, 3, 4, 5] : [parseInt(partType.replace("exercise", ""), 10) as ExerciseNum];
 
-    // Spend credits (1 per generation) using admin client
+    // Spend credits (1 per generation) using admin client. Unlimited users are exempt.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const UNLIMITED_EMAILS = new Set(["burger.tammy@gmail.com"]);
+    const userEmail = ((context as { claims?: { email?: string } }).claims?.email ?? "").toLowerCase();
+    const unlimited = UNLIMITED_EMAILS.has(userEmail);
     const { data: bal } = await (supabaseAdmin as unknown as { from: (t: string) => { select: (c: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: { balance: number } | null }> } } } }).from("credit_balances").select("balance").eq("user_id", userId).maybeSingle();
-    if (!bal || bal.balance < 1) throw new Error("Insufficient credits");
+    if (!unlimited) {
+      if (!bal || bal.balance < 1) throw new Error("Insufficient credits");
+      await (supabaseAdmin as unknown as { from: (t: string) => { update: (p: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> } } })
+        .from("credit_balances").update({ balance: bal.balance - 1 }).eq("user_id", userId);
+      await (supabaseAdmin as unknown as { from: (t: string) => { insert: (r: Record<string, unknown>) => Promise<{ error: unknown }> } })
+        .from("credit_ledger").insert({ user_id: userId, delta: -1, reason: "generate_paper", metadata: { assessment_id: data.assessment_id } });
+    }
 
-    await (supabaseAdmin as unknown as { from: (t: string) => { update: (p: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> } } })
-      .from("credit_balances").update({ balance: bal.balance - 1 }).eq("user_id", userId);
-    await (supabaseAdmin as unknown as { from: (t: string) => { insert: (r: Record<string, unknown>) => Promise<{ error: unknown }> } })
-      .from("credit_ledger").insert({ user_id: userId, delta: -1, reason: "generate_paper", metadata: { assessment_id: data.assessment_id } });
 
     // Load the paper's voice cast (joined to voice_cast). Empty cast is OK
     // — the model then falls back to short labels and audio uses a default
