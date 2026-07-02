@@ -292,8 +292,9 @@ async function renderPaperCover(
     const { cambridgeLogoBytes, CAMBRIDGE_LOGO_WIDTH, CAMBRIDGE_LOGO_HEIGHT } =
       await import("./cambridge-logo");
     const camEmbed = await ctx.doc.embedPng(cambridgeLogoBytes());
-    const camH = logoBoxH;
-    const camW = (CAMBRIDGE_LOGO_WIDTH / CAMBRIDGE_LOGO_HEIGHT) * camH;
+    const fullW = (CAMBRIDGE_LOGO_WIDTH / CAMBRIDGE_LOGO_HEIGHT) * logoBoxH;
+    const camW = fullW * 0.4;
+    const camH = logoBoxH * 0.4;
     page.drawImage(camEmbed, {
       x: PAGE_W - MARGIN - camW,
       y: bandCentreY - camH / 2,
