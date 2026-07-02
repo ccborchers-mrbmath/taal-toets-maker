@@ -72,6 +72,9 @@ type FullPaper = {
 
 function EditorContent() {
   const { id } = Route.useParams();
+  const search = Route.useSearch();
+  const kicked = search.kicked === 1;
+
   const { t, locale } = useT();
   const [generating, setGenerating] = useState(false);
   const [showMarks, setShowMarks] = useState(false);
