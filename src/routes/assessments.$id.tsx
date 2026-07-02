@@ -28,8 +28,12 @@ function triggerDownload(url: string, filename: string) {
 
 export const Route = createFileRoute("/assessments/$id")({
   head: () => ({ meta: [{ title: "Vraestel — Luister Lab" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    kicked: search.kicked === "1" || search.kicked === 1 ? 1 : undefined,
+  }),
   component: AssessmentEditorPage,
 });
+
 
 function AssessmentEditorPage() {
   return (
