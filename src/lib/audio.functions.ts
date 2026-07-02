@@ -175,8 +175,19 @@ export const generateExerciseAudio = createServerFn({ method: "POST" })
       });
     }
 
-    // Narrator is fixed across all papers — always use the designated voice.
-    const narrator: ResolvedVoice = { voiceId: narratorVoiceId(), settings: {}, name: "Verteller", castId: null };
+    // Narrator: prefer a cast voice flagged narrator-suitable; otherwise
+    // fall back to the hardcoded designated narrator ID.
+    const narratorFromCast = (library ?? []).find(
+      (r) => ((r.suitability as Record<string, boolean | undefined>) ?? {}).narrator,
+    );
+    const narrator: ResolvedVoice = narratorFromCast
+      ? {
+          voiceId: narratorFromCast.voice_id as string,
+          settings: (narratorFromCast.voice_settings as VoiceSettings) ?? {},
+          name: (narratorFromCast.name as string) ?? "Verteller",
+          castId: narratorFromCast.id as string,
+        }
+      : { voiceId: narratorVoiceId(), settings: {}, name: "Verteller", castId: null };
 
     const voiceMap = (ex.voice_map ?? {}) as Record<string, string | { id?: string; voice_id?: string }>;
     const resolveLabel = (label: string): ResolvedVoice => {
