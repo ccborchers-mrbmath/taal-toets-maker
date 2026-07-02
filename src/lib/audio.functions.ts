@@ -175,10 +175,8 @@ export const generateExerciseAudio = createServerFn({ method: "POST" })
       });
     }
 
-    const narratorRow = [...byId.values()].find((v) => v.suitability.narrator);
-    const narrator: ResolvedVoice = narratorRow
-      ? { voiceId: narratorRow.voice_id, settings: narratorRow.voice_settings, name: narratorRow.name, castId: null }
-      : { voiceId: narratorVoiceId(), settings: {}, name: "Verteller", castId: null };
+    // Narrator is fixed across all papers — always use the designated voice.
+    const narrator: ResolvedVoice = { voiceId: narratorVoiceId(), settings: {}, name: "Verteller", castId: null };
 
     const voiceMap = (ex.voice_map ?? {}) as Record<string, string | { id?: string; voice_id?: string }>;
     const resolveLabel = (label: string): ResolvedVoice => {
