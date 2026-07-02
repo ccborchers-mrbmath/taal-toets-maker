@@ -401,6 +401,7 @@ Skryf alle inhoud in natuurlike Suid-Afrikaanse Afrikaans wat toepaslik is vir 1
 - Antwoorde moet ondubbelsinnig deur die teks ondersteun word.
 - Moenie antwoordletters in die transkripsie noem nie.
 - Verskaf 'n "speakers_meta" beskrywing vir ELKE spreker in ELKE item in die vorm 'NAAM: geslag, ouderdom, aksent' (bv. 'Sarah: vroulik, tienerouderdom, Pretoriase aksent').
+- Verskaf op die EERSTE beurt van elke unieke spreker in elke item 'n kort Afrikaanse "role_gloss" van 1–4 woorde (bv. 'kliënt', 'tienerseun', 'mansonderwyser', 'radio-omroeper', '16-jarige meisie'). Moenie geslag/ouderdom/aksent hier herhaal nie — dit is slegs 'n rol-etiket vir die transkripsie.
 - Sillabus-relevante temas: alledaagse lewe, skool, vryetyd, omgewing, werk/loopbane, kultuur, tegnologie.
 
 ${cast}`;
