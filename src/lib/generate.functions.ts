@@ -420,45 +420,63 @@ Vraagnommers moet in die reeks ${spec.numberRange[0]}–${spec.numberRange[1]} w
 
   const tool = toolFor(opts.exNum);
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${opts.apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-pro",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      tools: [tool],
-      tool_choice: { type: "function", function: { name: tool.function.name } },
-    }),
+  const body = JSON.stringify({
+    model: "google/gemini-2.5-pro",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    tools: [tool],
+    tool_choice: { type: "function", function: { name: tool.function.name } },
   });
 
-  if (response.status === 429) throw new Error("RATE_LIMIT");
-  if (response.status === 402) throw new Error("PAYMENT_REQUIRED");
-  if (!response.ok) {
-    const t = await response.text();
-    console.error(`AI gateway error (Ex ${opts.exNum}):`, response.status, t);
-    throw new Error(`AI gateway error (Ex ${opts.exNum})`);
-  }
-
-  const result = await response.json();
-  const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
-  if (!toolCall) throw new Error(`No tool call returned for Ex ${opts.exNum}`);
-  const args = JSON.parse(toolCall.function.arguments);
-
-  return {
-    number: opts.exNum,
-    type: spec.type,
-    title: `Oefening ${opts.exNum}`,
-    instructions: spec.instructions,
-    reading_pause_s: spec.readingPause,
-    ...args,
+  // Gemini 2.5 Pro occasionally stalls past the Worker fetch cap (~130s).
+  // Retry once so a single slow call doesn't fail the whole paper.
+  const callGateway = async () => {
+    return fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${opts.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body,
+    });
   };
+
+  let response: Response;
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      response = await callGateway();
+      if (response.status === 429) throw new Error("RATE_LIMIT");
+      if (response.status === 402) throw new Error("PAYMENT_REQUIRED");
+      if (response.ok) {
+        const result = await response.json();
+        const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];
+        if (!toolCall) throw new Error(`No tool call returned for Ex ${opts.exNum}`);
+        const args = JSON.parse(toolCall.function.arguments);
+        return {
+          number: opts.exNum,
+          type: spec.type,
+          title: `Oefening ${opts.exNum}`,
+          instructions: spec.instructions,
+          reading_pause_s: spec.readingPause,
+          ...args,
+        };
+      }
+      const t = await response.text();
+      console.error(`AI gateway error (Ex ${opts.exNum}) attempt ${attempt + 1}:`, response.status, t);
+      lastErr = new Error(`AI gateway error (Ex ${opts.exNum})`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg === "RATE_LIMIT" || msg === "PAYMENT_REQUIRED") throw e;
+      console.error(`AI gateway fetch failed (Ex ${opts.exNum}) attempt ${attempt + 1}:`, msg);
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(`AI gateway error (Ex ${opts.exNum})`);
 }
+
 
 // Filter the paper-wide cast to the voices flagged suitable for a given exercise.
 function castForExercise(all: (CastLite & { suitability: Record<string, boolean | undefined> })[], exNum: ExerciseNum): CastLite[] {
