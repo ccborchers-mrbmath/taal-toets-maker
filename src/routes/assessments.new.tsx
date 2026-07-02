@@ -162,13 +162,15 @@ function NewAssessmentForm() {
 
 
       toast.message(locale === "af" ? "Vraestel word geskep…" : "Generating paper…");
-      navigate({ to: "/assessments/$id", params: { id: created.id }, search: { kicked: 1 } });
 
-      // Kick off generation in the background; the editor page polls status.
+      // Kick off generation BEFORE navigating so the fetch is initiated from
+      // the still-mounted context and isn't torn down by the route change.
       generatePaper({ data: { assessment_id: created.id } }).catch((err) => {
         console.error("Generation failed", err);
         toast.error(t("common.error"), { description: err instanceof Error ? err.message : String(err) });
       });
+
+      navigate({ to: "/assessments/$id", params: { id: created.id }, search: { kicked: 1 } });
     } catch (err) {
       toast.error(t("common.error"), { description: err instanceof Error ? err.message : String(err) });
     } finally {
