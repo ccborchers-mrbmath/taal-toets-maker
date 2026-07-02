@@ -20,9 +20,15 @@ export function AppShell({ children, requireAuth = true }: AppShellProps) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { t } = useT();
 
+  const ALLOWED_EMAILS = new Set(["burger.tammy@gmail.com", "ccborchers@gmail.com"]);
+
   useEffect(() => {
     if (requireAuth && !loading && !user) {
       navigate({ to: "/auth", replace: true });
+      return;
+    }
+    if (user && !ALLOWED_EMAILS.has((user.email ?? "").toLowerCase())) {
+      supabase.auth.signOut().finally(() => navigate({ to: "/auth", replace: true }));
     }
   }, [requireAuth, loading, user, navigate]);
 
