@@ -48,6 +48,64 @@ const ROLE_KEYS: { key: keyof Suitability; af: string; en: string }[] = [
   { key: "ex5_interviewee", af: "Oef 5 gas", en: "Ex 5 guest" },
 ];
 
+type SampleKey =
+  | "narrator"
+  | "ex1_item"
+  | "ex2_dialogue"
+  | "ex3_monologue"
+  | "ex4_teen"
+  | "ex5_interview";
+
+const SAMPLES: {
+  key: SampleKey;
+  af: string;
+  en: string;
+  text: string;
+}[] = [
+  {
+    key: "narrator",
+    af: "Verteller (rubriek)",
+    en: "Narrator (rubric)",
+    text:
+      "Goeiedag almal, en welkom by die luistereksamen. Jy sal elke opname twee keer hoor. Skryf jou antwoorde op die antwoordblad.",
+  },
+  {
+    key: "ex1_item",
+    af: "Oef 1 — kort mededeling",
+    en: "Ex 1 — short announcement",
+    text:
+      "Aandag asseblief, aandag asseblief. Die trein na Kaapstad vertrek nou vanaf platform ses. Passasiers word versoek om dadelik in te klim.",
+  },
+  {
+    key: "ex2_dialogue",
+    af: "Oef 2 — gesprek",
+    en: "Ex 2 — dialogue line",
+    text:
+      "Nee wat, ek dink nie ons gaan dit vandag maak nie. Die verkeer is verskriklik en die vergadering begin oor twintig minute.",
+  },
+  {
+    key: "ex3_monologue",
+    af: "Oef 3 — lang praatjie",
+    en: "Ex 3 — long talk",
+    text:
+      "Toe ek nog op skool was, het ek nooit gedink ek sou eendag 'n dokter word nie. Dit was eers na my matriekjaar, toe ek 'n paar maande by 'n plaaslike hospitaal vrywillig gewerk het, dat ek besef het hierdie is my roeping.",
+  },
+  {
+    key: "ex4_teen",
+    af: "Oef 4 — tiener-spreker",
+    en: "Ex 4 — teen speaker",
+    text:
+      "Ek geniet dit regtig om saans saam met my vriende rugby te oefen. Dit help my om die spanning van skoolwerk af te skud en ek slaap ook baie beter daarna.",
+  },
+  {
+    key: "ex5_interview",
+    af: "Oef 5 — onderhoud",
+    en: "Ex 5 — interview",
+    text:
+      "Vertel vir ons, meneer Van Wyk, hoe het u belangstelling in bewaring begin? Nou ja, dit strek eintlik terug tot my kinderjare op die plaas naby Oudtshoorn, waar my oupa my alles van die veld en die diere geleer het.",
+  },
+];
+
 function VoicesContent() {
   const { locale } = useT();
   const t = (af: string, en: string) => (locale === "af" ? af : en);
@@ -56,6 +114,7 @@ function VoicesContent() {
   const [editing, setEditing] = useState<Partial<CastVoice> | null>(null);
   const [busy, setBusy] = useState(false);
   const [previewing, setPreviewing] = useState<string | null>(null);
+  const [sampleKey, setSampleKey] = useState<SampleKey>("narrator");
 
   async function refresh() {
     setLoading(true);
