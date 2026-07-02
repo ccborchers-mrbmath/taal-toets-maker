@@ -99,7 +99,7 @@ type FullPaper = {
         image_prompt: string | null;
       }[];
     }[];
-    listening_scripts: { sequence: number; speaker_label: string | null; transcript: string; item_index: number | null }[];
+    listening_scripts: { sequence: number; speaker_label: string | null; transcript: string; item_index: number | null; role_gloss: string | null; context: string | null }[];
   }[];
 };
 
