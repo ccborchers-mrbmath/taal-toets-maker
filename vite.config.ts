@@ -12,4 +12,14 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    resolve: {
+      alias: {
+        // pdf-lib's default CJS entry breaks under the Cloudflare Worker bundler:
+        // `Cannot destructure property '__extends' of '__toESM(...).default'`.
+        // The `dist/pdf-lib.esm.js` bundle inlines tslib and works in the Worker.
+        "pdf-lib": "pdf-lib/dist/pdf-lib.esm.js",
+      },
+    },
+  },
 });
