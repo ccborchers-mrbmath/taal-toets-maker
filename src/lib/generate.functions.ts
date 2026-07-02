@@ -530,13 +530,38 @@ async function persistPaper(
     // ---------- transcripts ----------
     // `item_index` groups turns by their parent item so the audio generator
     // can replay the exemplar Cambridge pause pattern (per-item rubric +
-    // reading pause + recording + 5s + repeat + 5s, etc.).
-    const turns: { speaker: string; text: string; item_index: number }[] = [];
-    if (ex.items) ex.items.forEach((it, idx) => (it.turns ?? []).forEach((t) => turns.push({ ...t, item_index: idx })));
-    if (ex.pair_items) ex.pair_items.forEach((p, idx) => (p.turns ?? []).forEach((t) => turns.push({ ...t, item_index: idx })));
-    if (ex.speaker_items) ex.speaker_items.forEach((it, idx) => (it.turns ?? []).forEach((t) => turns.push({ ...t, item_index: idx })));
-    const longTurns = (ex as unknown as { turns?: { speaker: string; text: string }[] }).turns;
-    if (Array.isArray(longTurns)) longTurns.forEach((t) => turns.push({ ...t, item_index: 0 }));
+    // reading pause + recording + 5s + repeat + 5s, etc.). `context` is
+    // the per-item lead-in sentence (Ex 1 & 2 only) that the transcript PDF
+    // narrator reads before each paired recording. `role_gloss` is a short
+    // Afrikaans role label shown as an italic speaker cue in the transcript.
+    type PersistTurn = {
+      speaker: string;
+      text: string;
+      role_gloss?: string | null;
+      item_index: number;
+      context: string | null;
+    };
+    const turns: PersistTurn[] = [];
+    if (ex.items)
+      ex.items.forEach((it, idx) =>
+        (it.turns ?? []).forEach((t) =>
+          turns.push({ ...(t as PersistTurn), item_index: idx, context: (it as { context?: string }).context ?? null }),
+        ),
+      );
+    if (ex.pair_items)
+      ex.pair_items.forEach((p, idx) =>
+        (p.turns ?? []).forEach((t) =>
+          turns.push({ ...(t as PersistTurn), item_index: idx, context: (p as { context?: string }).context ?? null }),
+        ),
+      );
+    if (ex.speaker_items)
+      ex.speaker_items.forEach((it, idx) =>
+        (it.turns ?? []).forEach((t) =>
+          turns.push({ ...(t as PersistTurn), item_index: idx, context: null }),
+        ),
+      );
+    const longTurns = (ex as unknown as { turns?: { speaker: string; text: string; role_gloss?: string }[] }).turns;
+    if (Array.isArray(longTurns)) longTurns.forEach((t) => turns.push({ ...(t as PersistTurn), item_index: 0, context: null }));
     if (turns.length) {
       await supabase.from("listening_scripts").insert(
         turns.map((t, i) => ({
@@ -545,9 +570,12 @@ async function persistPaper(
           speaker_label: t.speaker,
           transcript: t.text,
           item_index: t.item_index,
+          role_gloss: t.role_gloss ?? null,
+          context: t.context,
         })),
       );
     }
+
 
     // ---------- questions + options ----------
     type FlatQ = { number: number; stem: string; correct: string; options: { letter: string; text?: string; image_prompt?: string }[]; speakerIndex?: number };
