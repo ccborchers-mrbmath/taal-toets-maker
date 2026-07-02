@@ -241,6 +241,30 @@ function VoicesContent() {
           </Button>
         </div>
 
+        <div className="mt-5 flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+              {t("Voorskou-teks", "Preview text")}
+            </Label>
+            <p className="mt-1 truncate text-xs italic text-muted-foreground">
+              “{SAMPLES.find((s) => s.key === sampleKey)?.text}”
+            </p>
+          </div>
+          <Select value={sampleKey} onValueChange={(v) => setSampleKey(v as SampleKey)}>
+            <SelectTrigger className="w-full sm:w-64">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SAMPLES.map((s) => (
+                <SelectItem key={s.key} value={s.key}>
+                  {locale === "af" ? s.af : s.en}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+
         {loading ? (
           <div className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> {t("Laai…", "Loading…")}
