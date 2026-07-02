@@ -810,17 +810,24 @@ function groupByItem(scripts: ScriptTurn[]): ScriptTurn[][] {
   return [...groups.keys()].sort((a, b) => a - b).map((k) => groups.get(k)!);
 }
 
-function uniqueSpeakers(turns: ScriptTurn[]): string[] {
+type SpeakerCue = { label: string; role_gloss: string | null };
+
+function uniqueSpeakers(turns: ScriptTurn[]): SpeakerCue[] {
   const seen = new Set<string>();
-  const out: string[] = [];
+  const out: SpeakerCue[] = [];
   for (const t of turns) {
     const l = (t.speaker_label ?? "").trim();
     if (!l || seen.has(l)) continue;
     seen.add(l);
-    out.push(l);
+    out.push({ label: l, role_gloss: (t.role_gloss ?? "").trim() || null });
   }
   return out;
 }
+
+function formatCue(c: SpeakerCue): string {
+  return c.role_gloss ? `${c.label}: ${c.role_gloss}` : c.label;
+}
+
 
 function drawTurns(ctx: Ctx, turns: ScriptTurn[]) {
   for (let i = 0; i < turns.length; i++) {
