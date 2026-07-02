@@ -921,7 +921,7 @@ function renderTranscriptExercise(ctx: Ctx, ex: FullPaper["exercises"][number]) 
         }
         drawPause(ctx, "00'03\"");
         const speakers = uniqueSpeakers(groups[i]);
-        for (const s of speakers) drawSpeakerCue(ctx, `${s}`);
+        for (const s of speakers) drawSpeakerCue(ctx, formatCue(s));
         drawTurns(ctx, groups[i]);
         drawPause(ctx, "00'05\"");
         drawRepeat(ctx);
@@ -935,12 +935,15 @@ function renderTranscriptExercise(ctx: Ctx, ex: FullPaper["exercises"][number]) 
       for (let i = 0; i < groups.length; i++) {
         const qA = qs[i * 2];
         const qB = qs[i * 2 + 1];
+        // Specimen lead-in sentence before the paired-question narrator line.
+        const ctxText = (groups[i][0]?.context ?? "").trim();
+        if (ctxText) drawNarratorLine(ctx, ctxText);
         if (qA && qB) {
           drawNarratorLine(ctx, `Kyk nou na vraag ${qA.number} en ${qB.number}.`, { bold: true });
         }
         drawPause(ctx, "00'15\"");
         const speakers = uniqueSpeakers(groups[i]);
-        for (const s of speakers) drawSpeakerCue(ctx, `${s}`);
+        for (const s of speakers) drawSpeakerCue(ctx, formatCue(s));
         drawTurns(ctx, groups[i]);
         drawPause(ctx, "00'05\"");
         drawRepeat(ctx);
@@ -957,7 +960,7 @@ function renderTranscriptExercise(ctx: Ctx, ex: FullPaper["exercises"][number]) 
       drawPause(ctx, ex.number === 3 ? "00'40\"" : "00'45\"");
       const all = groups.flat();
       const speakers = uniqueSpeakers(all);
-      for (const s of speakers) drawSpeakerCue(ctx, `${s}`);
+      for (const s of speakers) drawSpeakerCue(ctx, formatCue(s));
       drawTurns(ctx, all);
       drawPause(ctx, "00'10\"");
       drawNarratorLine(
@@ -976,7 +979,7 @@ function renderTranscriptExercise(ctx: Ctx, ex: FullPaper["exercises"][number]) 
       for (let i = 0; i < groups.length; i++) {
         drawNarratorLine(ctx, `Spreker ${i + 1}`, { bold: true });
         const speakers = uniqueSpeakers(groups[i]);
-        for (const s of speakers) drawSpeakerCue(ctx, `${s}`);
+        for (const s of speakers) drawSpeakerCue(ctx, formatCue(s));
         drawTurns(ctx, groups[i]);
         drawPause(ctx, "00'10\"");
       }
@@ -989,11 +992,12 @@ function renderTranscriptExercise(ctx: Ctx, ex: FullPaper["exercises"][number]) 
       // Fallback: dump turns as a single block
       const all = groups.flat();
       const speakers = uniqueSpeakers(all);
-      for (const s of speakers) drawSpeakerCue(ctx, `${s}`);
+      for (const s of speakers) drawSpeakerCue(ctx, formatCue(s));
       drawTurns(ctx, all);
     }
   }
 }
+
 
 // ---------------------------------------------------------------------------
 // Storage image fetcher
