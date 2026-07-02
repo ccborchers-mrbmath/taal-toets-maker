@@ -162,7 +162,7 @@ function NewAssessmentForm() {
 
 
       toast.message(locale === "af" ? "Vraestel word geskep…" : "Generating paper…");
-      navigate({ to: "/assessments/$id", params: { id: created.id } });
+      navigate({ to: "/assessments/$id", params: { id: created.id }, search: { kicked: 1 } });
 
       // Kick off generation in the background; the editor page polls status.
       generatePaper({ data: { assessment_id: created.id } }).catch((err) => {

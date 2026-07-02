@@ -28,8 +28,12 @@ function triggerDownload(url: string, filename: string) {
 
 export const Route = createFileRoute("/assessments/$id")({
   head: () => ({ meta: [{ title: "Vraestel — Luister Lab" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    kicked: search.kicked === "1" || search.kicked === 1 ? 1 : undefined,
+  }),
   component: AssessmentEditorPage,
 });
+
 
 function AssessmentEditorPage() {
   return (
@@ -68,6 +72,9 @@ type FullPaper = {
 
 function EditorContent() {
   const { id } = Route.useParams();
+  const search = Route.useSearch();
+  const kicked = search.kicked === 1;
+
   const { t, locale } = useT();
   const [generating, setGenerating] = useState(false);
   const [showMarks, setShowMarks] = useState(false);
@@ -102,9 +109,16 @@ function EditorContent() {
     },
     refetchInterval: (q) => {
       const s = q.state.data?.assessment?.status;
-      return s === "generating" ? 2500 : false;
+      // Poll while generation is in flight. `kicked=1` (set by the "new
+      // paper" flow) covers the race where the server hasn't flipped
+      // status to "generating" yet — otherwise the initial fetch sees
+      // "draft" and polling would never start.
+      if (s === "generating") return 2500;
+      if (kicked && s === "draft") return 2000;
+      return false;
     },
   });
+
 
   const run = async () => {
     setGenerating(true);
@@ -136,7 +150,10 @@ function EditorContent() {
   }
 
   const { assessment, exercises } = query.data;
-  const isGenerating = assessment.status === "generating" || generating;
+  // While `kicked=1`, treat "draft" as "generation kick-off in flight" so
+  // the Generate CTA is suppressed (prevents the user from double-clicking
+  // and being charged a second credit before the server flips status).
+  const isGenerating = assessment.status === "generating" || generating || (kicked && assessment.status === "draft");
   const isFailed = assessment.status === "failed";
   const isReady = assessment.status === "ready" && exercises.length > 0;
   const audioInFlight = audioBusyIds.size > 0;
