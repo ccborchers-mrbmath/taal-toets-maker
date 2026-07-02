@@ -690,7 +690,7 @@ export const generatePaper = createServerFn({ method: "POST" })
 
     // Spend credits (1 per generation) using admin client. Unlimited users are exempt.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const UNLIMITED_EMAILS = new Set(["burger.tammy@gmail.com"]);
+    const UNLIMITED_EMAILS = new Set(["burger.tammy@gmail.com", "ccborchers@gmail.com"]);
     const userEmail = ((context as { claims?: { email?: string } }).claims?.email ?? "").toLowerCase();
     const unlimited = UNLIMITED_EMAILS.has(userEmail);
     const { data: bal } = await (supabaseAdmin as unknown as { from: (t: string) => { select: (c: string) => { eq: (c: string, v: string) => { maybeSingle: () => Promise<{ data: { balance: number } | null }> } } } }).from("credit_balances").select("balance").eq("user_id", userId).maybeSingle();
