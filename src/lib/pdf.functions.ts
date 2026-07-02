@@ -99,7 +99,7 @@ type FullPaper = {
         image_prompt: string | null;
       }[];
     }[];
-    listening_scripts: { sequence: number; speaker_label: string | null; transcript: string; item_index: number | null }[];
+    listening_scripts: { sequence: number; speaker_label: string | null; transcript: string; item_index: number | null; role_gloss: string | null; context: string | null }[];
   }[];
 };
 
@@ -733,7 +733,7 @@ function drawPause(ctx: Ctx, label: string) {
 function drawRepeat(ctx: Ctx) {
   ensure(ctx, 14);
   gap(ctx, 2);
-  ctx.page.drawText("REPEAT FROM * TO **", {
+  ctx.page.drawText("REPEAT FROM * to **", {
     x: BODY_X,
     y: ctx.y - 10,
     size: 9.5,
@@ -810,17 +810,24 @@ function groupByItem(scripts: ScriptTurn[]): ScriptTurn[][] {
   return [...groups.keys()].sort((a, b) => a - b).map((k) => groups.get(k)!);
 }
 
-function uniqueSpeakers(turns: ScriptTurn[]): string[] {
+type SpeakerCue = { label: string; role_gloss: string | null };
+
+function uniqueSpeakers(turns: ScriptTurn[]): SpeakerCue[] {
   const seen = new Set<string>();
-  const out: string[] = [];
+  const out: SpeakerCue[] = [];
   for (const t of turns) {
     const l = (t.speaker_label ?? "").trim();
     if (!l || seen.has(l)) continue;
     seen.add(l);
-    out.push(l);
+    out.push({ label: l, role_gloss: (t.role_gloss ?? "").trim() || null });
   }
   return out;
 }
+
+function formatCue(c: SpeakerCue): string {
+  return c.role_gloss ? `${c.label}: ${c.role_gloss}` : c.label;
+}
+
 
 function drawTurns(ctx: Ctx, turns: ScriptTurn[]) {
   for (let i = 0; i < turns.length; i++) {
@@ -881,15 +888,16 @@ function renderTranscript(ctx: Ctx, p: FullPaper) {
       );
       drawPause(ctx, "00'05\"");
     } else {
+      drawNarratorLine(ctx, `Hierdie is die einde van oefening ${ex.number}.`, { bold: true });
       drawNarratorLine(
         ctx,
-        "Hierdie is die einde van die toets. Jy het nou vyf minute om jou antwoorde na die antwoordblad oor te dra.",
-        { bold: true },
+        "Jy het nou 6 minute om jou antwoorde op die antwoordblad te skryf. Jy sal gewaarsku word wanneer daar nog net 1 minuut oor is.",
       );
       drawPause(ctx, "05'00\"");
-      drawNarratorLine(ctx, "Jy het nou een minuut oor.");
+      drawNarratorLine(ctx, "Daar is nou 1 minuut oor.");
       drawPause(ctx, "01'00\"");
-      drawNarratorLine(ctx, "Sit nou jou penne neer. Dit is die einde van die eksamen.", { bold: true });
+      drawNarratorLine(ctx, "Dit is nou die einde van hierdie vraestel.", { bold: true });
+      drawNarratorLine(ctx, "This is the end of the examination.", { bold: true });
     }
   }
 }
@@ -914,7 +922,7 @@ function renderTranscriptExercise(ctx: Ctx, ex: FullPaper["exercises"][number]) 
         }
         drawPause(ctx, "00'03\"");
         const speakers = uniqueSpeakers(groups[i]);
-        for (const s of speakers) drawSpeakerCue(ctx, `${s}`);
+        for (const s of speakers) drawSpeakerCue(ctx, formatCue(s));
         drawTurns(ctx, groups[i]);
         drawPause(ctx, "00'05\"");
         drawRepeat(ctx);
@@ -928,12 +936,15 @@ function renderTranscriptExercise(ctx: Ctx, ex: FullPaper["exercises"][number]) 
       for (let i = 0; i < groups.length; i++) {
         const qA = qs[i * 2];
         const qB = qs[i * 2 + 1];
+        // Specimen lead-in sentence before the paired-question narrator line.
+        const ctxText = (groups[i][0]?.context ?? "").trim();
+        if (ctxText) drawNarratorLine(ctx, ctxText);
         if (qA && qB) {
           drawNarratorLine(ctx, `Kyk nou na vraag ${qA.number} en ${qB.number}.`, { bold: true });
         }
         drawPause(ctx, "00'15\"");
         const speakers = uniqueSpeakers(groups[i]);
-        for (const s of speakers) drawSpeakerCue(ctx, `${s}`);
+        for (const s of speakers) drawSpeakerCue(ctx, formatCue(s));
         drawTurns(ctx, groups[i]);
         drawPause(ctx, "00'05\"");
         drawRepeat(ctx);
@@ -950,7 +961,7 @@ function renderTranscriptExercise(ctx: Ctx, ex: FullPaper["exercises"][number]) 
       drawPause(ctx, ex.number === 3 ? "00'40\"" : "00'45\"");
       const all = groups.flat();
       const speakers = uniqueSpeakers(all);
-      for (const s of speakers) drawSpeakerCue(ctx, `${s}`);
+      for (const s of speakers) drawSpeakerCue(ctx, formatCue(s));
       drawTurns(ctx, all);
       drawPause(ctx, "00'10\"");
       drawNarratorLine(
@@ -969,7 +980,7 @@ function renderTranscriptExercise(ctx: Ctx, ex: FullPaper["exercises"][number]) 
       for (let i = 0; i < groups.length; i++) {
         drawNarratorLine(ctx, `Spreker ${i + 1}`, { bold: true });
         const speakers = uniqueSpeakers(groups[i]);
-        for (const s of speakers) drawSpeakerCue(ctx, `${s}`);
+        for (const s of speakers) drawSpeakerCue(ctx, formatCue(s));
         drawTurns(ctx, groups[i]);
         drawPause(ctx, "00'10\"");
       }
@@ -982,11 +993,12 @@ function renderTranscriptExercise(ctx: Ctx, ex: FullPaper["exercises"][number]) 
       // Fallback: dump turns as a single block
       const all = groups.flat();
       const speakers = uniqueSpeakers(all);
-      for (const s of speakers) drawSpeakerCue(ctx, `${s}`);
+      for (const s of speakers) drawSpeakerCue(ctx, formatCue(s));
       drawTurns(ctx, all);
     }
   }
 }
+
 
 // ---------------------------------------------------------------------------
 // Storage image fetcher
@@ -1104,7 +1116,7 @@ export const generatePaperPdf = createServerFn({ method: "POST" })
     const { data: exsRaw, error: exErr } = await supabase
       .from("exercises")
       .select(
-        "id,number,kind,rubric,statements,questions(id,number,stem,correct_letter,speaker_index,question_options(id,letter,text,image_prompt)),listening_scripts(sequence,speaker_label,transcript,item_index)",
+        "id,number,kind,rubric,statements,questions(id,number,stem,correct_letter,speaker_index,question_options(id,letter,text,image_prompt)),listening_scripts(sequence,speaker_label,transcript,item_index,role_gloss,context)",
       )
       .eq("assessment_id", data.assessment_id)
       .order("number");

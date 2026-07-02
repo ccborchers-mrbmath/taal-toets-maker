@@ -71,13 +71,17 @@ const EXERCISE_BRIEFS: Record<ExerciseNum, {
 
 const turnSchema = {
   type: "object",
+  description:
+    "One spoken turn in the recording. On the FIRST turn of each distinct speaker within an item, also supply `role_gloss` — a short Afrikaans role label (1–4 words) matching the specimen (e.g. 'kliënt', 'tienerseun', 'mansonderwyser', 'radio-omroeper', '16-jarige meisie'). Do NOT include gender/age/accent voice-casting notes here — those belong in `speakers_meta`.",
   properties: {
     speaker: { type: "string", description: "Short label, e.g. 'M', 'V', 'M1', 'Onderhoudvoerder', or first name." },
     text: { type: "string" },
+    role_gloss: { type: "string", description: "Optional 1–4 word Afrikaans role gloss for this speaker (first turn per speaker per item)." },
   },
   required: ["speaker", "text"],
   additionalProperties: false,
 } as const;
+
 
 const speakersMetaSchema = {
   type: "array",
@@ -397,6 +401,7 @@ Skryf alle inhoud in natuurlike Suid-Afrikaanse Afrikaans wat toepaslik is vir 1
 - Antwoorde moet ondubbelsinnig deur die teks ondersteun word.
 - Moenie antwoordletters in die transkripsie noem nie.
 - Verskaf 'n "speakers_meta" beskrywing vir ELKE spreker in ELKE item in die vorm 'NAAM: geslag, ouderdom, aksent' (bv. 'Sarah: vroulik, tienerouderdom, Pretoriase aksent').
+- Verskaf op die EERSTE beurt van elke unieke spreker in elke item 'n kort Afrikaanse "role_gloss" van 1–4 woorde (bv. 'kliënt', 'tienerseun', 'mansonderwyser', 'radio-omroeper', '16-jarige meisie'). Moenie geslag/ouderdom/aksent hier herhaal nie — dit is slegs 'n rol-etiket vir die transkripsie.
 - Sillabus-relevante temas: alledaagse lewe, skool, vryetyd, omgewing, werk/loopbane, kultuur, tegnologie.
 
 ${cast}`;
@@ -525,13 +530,38 @@ async function persistPaper(
     // ---------- transcripts ----------
     // `item_index` groups turns by their parent item so the audio generator
     // can replay the exemplar Cambridge pause pattern (per-item rubric +
-    // reading pause + recording + 5s + repeat + 5s, etc.).
-    const turns: { speaker: string; text: string; item_index: number }[] = [];
-    if (ex.items) ex.items.forEach((it, idx) => (it.turns ?? []).forEach((t) => turns.push({ ...t, item_index: idx })));
-    if (ex.pair_items) ex.pair_items.forEach((p, idx) => (p.turns ?? []).forEach((t) => turns.push({ ...t, item_index: idx })));
-    if (ex.speaker_items) ex.speaker_items.forEach((it, idx) => (it.turns ?? []).forEach((t) => turns.push({ ...t, item_index: idx })));
-    const longTurns = (ex as unknown as { turns?: { speaker: string; text: string }[] }).turns;
-    if (Array.isArray(longTurns)) longTurns.forEach((t) => turns.push({ ...t, item_index: 0 }));
+    // reading pause + recording + 5s + repeat + 5s, etc.). `context` is
+    // the per-item lead-in sentence (Ex 1 & 2 only) that the transcript PDF
+    // narrator reads before each paired recording. `role_gloss` is a short
+    // Afrikaans role label shown as an italic speaker cue in the transcript.
+    type PersistTurn = {
+      speaker: string;
+      text: string;
+      role_gloss?: string | null;
+      item_index: number;
+      context: string | null;
+    };
+    const turns: PersistTurn[] = [];
+    if (ex.items)
+      ex.items.forEach((it, idx) =>
+        (it.turns ?? []).forEach((t) =>
+          turns.push({ ...(t as PersistTurn), item_index: idx, context: (it as { context?: string }).context ?? null }),
+        ),
+      );
+    if (ex.pair_items)
+      ex.pair_items.forEach((p, idx) =>
+        (p.turns ?? []).forEach((t) =>
+          turns.push({ ...(t as PersistTurn), item_index: idx, context: (p as { context?: string }).context ?? null }),
+        ),
+      );
+    if (ex.speaker_items)
+      ex.speaker_items.forEach((it, idx) =>
+        (it.turns ?? []).forEach((t) =>
+          turns.push({ ...(t as PersistTurn), item_index: idx, context: null }),
+        ),
+      );
+    const longTurns = (ex as unknown as { turns?: { speaker: string; text: string; role_gloss?: string }[] }).turns;
+    if (Array.isArray(longTurns)) longTurns.forEach((t) => turns.push({ ...(t as PersistTurn), item_index: 0, context: null }));
     if (turns.length) {
       await supabase.from("listening_scripts").insert(
         turns.map((t, i) => ({
@@ -540,9 +570,12 @@ async function persistPaper(
           speaker_label: t.speaker,
           transcript: t.text,
           item_index: t.item_index,
+          role_gloss: t.role_gloss ?? null,
+          context: t.context,
         })),
       );
     }
+
 
     // ---------- questions + options ----------
     type FlatQ = { number: number; stem: string; correct: string; options: { letter: string; text?: string; image_prompt?: string }[]; speakerIndex?: number };

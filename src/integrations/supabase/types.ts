@@ -226,30 +226,36 @@ export type Database = {
       listening_scripts: {
         Row: {
           audio_url: string | null
+          context: string | null
           duration_seconds: number | null
           exercise_id: string
           id: string
           item_index: number | null
+          role_gloss: string | null
           sequence: number
           speaker_label: string | null
           transcript: string
         }
         Insert: {
           audio_url?: string | null
+          context?: string | null
           duration_seconds?: number | null
           exercise_id: string
           id?: string
           item_index?: number | null
+          role_gloss?: string | null
           sequence?: number
           speaker_label?: string | null
           transcript: string
         }
         Update: {
           audio_url?: string | null
+          context?: string | null
           duration_seconds?: number | null
           exercise_id?: string
           id?: string
           item_index?: number | null
+          role_gloss?: string | null
           sequence?: number
           speaker_label?: string | null
           transcript?: string
