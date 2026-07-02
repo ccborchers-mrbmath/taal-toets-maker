@@ -733,7 +733,7 @@ function drawPause(ctx: Ctx, label: string) {
 function drawRepeat(ctx: Ctx) {
   ensure(ctx, 14);
   gap(ctx, 2);
-  ctx.page.drawText("REPEAT FROM * TO **", {
+  ctx.page.drawText("REPEAT FROM * to **", {
     x: BODY_X,
     y: ctx.y - 10,
     size: 9.5,
