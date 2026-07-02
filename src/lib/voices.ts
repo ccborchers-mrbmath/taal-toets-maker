@@ -25,7 +25,7 @@ export type Voice = {
 
 export const VOICES: Voice[] = [
   // Narrator (used for rubrics + "Jy sal nou die opname weer hoor.")
-  { id: "cCYjmrGZaI86GUJ7F2Nn", name: "Verteller",  bucket: "narrator" },
+  { id: "SuZjJOmejdKQNzQbif43", name: "Verteller",  bucket: "narrator" },
 
   // Adult males
   { id: "nPczCjzI2devNBz1zQrb", name: "Brian",   bucket: "adult_male" },
