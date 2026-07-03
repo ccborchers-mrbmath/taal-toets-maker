@@ -561,6 +561,7 @@ function PdfButton({
 
 function AudioBlock({ ex, onGenerated, onBusyChange }: { ex: FullPaper["exercises"][number]; onGenerated?: () => void; onBusyChange?: (busy: boolean) => void }) {
   const { locale } = useT();
+  const { id: assessmentId } = Route.useParams();
   const t = (af: string, en: string) => (locale === "af" ? af : en);
   const [busy, setBusy] = useState(false);
   const [url, setUrl] = useState<string | null>(ex.audio_url);
