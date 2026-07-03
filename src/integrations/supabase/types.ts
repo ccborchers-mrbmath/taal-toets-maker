@@ -225,36 +225,54 @@ export type Database = {
       }
       listening_scripts: {
         Row: {
+          audio_generated_at: string | null
+          audio_path: string | null
+          audio_stale: boolean
           audio_url: string | null
           context: string | null
           duration_seconds: number | null
           exercise_id: string
           id: string
           item_index: number | null
+          previous_audio_path: string | null
+          previous_generated_at: string | null
+          previous_transcript: string | null
           role_gloss: string | null
           sequence: number
           speaker_label: string | null
           transcript: string
         }
         Insert: {
+          audio_generated_at?: string | null
+          audio_path?: string | null
+          audio_stale?: boolean
           audio_url?: string | null
           context?: string | null
           duration_seconds?: number | null
           exercise_id: string
           id?: string
           item_index?: number | null
+          previous_audio_path?: string | null
+          previous_generated_at?: string | null
+          previous_transcript?: string | null
           role_gloss?: string | null
           sequence?: number
           speaker_label?: string | null
           transcript: string
         }
         Update: {
+          audio_generated_at?: string | null
+          audio_path?: string | null
+          audio_stale?: boolean
           audio_url?: string | null
           context?: string | null
           duration_seconds?: number | null
           exercise_id?: string
           id?: string
           item_index?: number | null
+          previous_audio_path?: string | null
+          previous_generated_at?: string | null
+          previous_transcript?: string | null
           role_gloss?: string | null
           sequence?: number
           speaker_label?: string | null
