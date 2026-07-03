@@ -97,14 +97,14 @@ async function ttsSegment(voice: ResolvedVoice, text: string): Promise<Uint8Arra
   const body = {
     text,
     model_id: TTS_MODEL,
+    language_code: "af",
     voice_settings: {
-      stability: voice.settings.stability ?? 0.55,
-      similarity_boost: voice.settings.similarity_boost ?? 0.8,
-      style: voice.settings.style ?? 0.25,
-      use_speaker_boost: true,
+      stability: voice.settings.stability ?? 0.5,
+      similarity_boost: voice.settings.similarity_boost ?? 0.75,
       ...(voice.settings.speed ? { speed: voice.settings.speed } : {}),
     },
   };
+
 
   const res = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${voice.voiceId}?output_format=mp3_44100_128`,
