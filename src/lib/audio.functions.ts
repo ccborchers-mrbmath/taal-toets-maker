@@ -476,7 +476,6 @@ export const generateExerciseAudio = createServerFn({ method: "POST" })
     return {
       exercise_id: ex.id,
       audio_url: audioUrl,
-      voice_map: ex.voice_map ?? {},
       bytes: stitched.length,
     };
   });
