@@ -119,6 +119,8 @@ export const regenerateSegment = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const userEmail = ((context as { claims?: { email?: string } }).claims?.email ?? "").toLowerCase();
+
     const { data: row, error } = await supabase
       .from("listening_scripts")
       .select("id,exercise_id,transcript,speaker_label,audio_path,audio_generated_at,audio_stale,previous_transcript,previous_audio_path,previous_generated_at,sequence,item_index")
@@ -130,26 +132,46 @@ export const regenerateSegment = createServerFn({ method: "POST" })
     const { ex, resolveLabel } = await loadExerciseContext(supabase, userId, row.exercise_id);
     const voice = resolveLabel(row.speaker_label);
 
-    await synthesizeAndPersistRow({
-      row: {
-        id: row.id,
-        sequence: row.sequence,
-        speaker_label: row.speaker_label,
-        transcript: row.transcript,
-        item_index: row.item_index,
-        audio_path: row.audio_path,
-        audio_generated_at: row.audio_generated_at,
-        audio_stale: row.audio_stale,
-        previous_transcript: row.previous_transcript,
-        previous_audio_path: row.previous_audio_path,
-        previous_generated_at: row.previous_generated_at,
-      },
-      voice,
-      assessmentId: ex.assessment_id,
-      exerciseId: ex.id,
+    const { spendCredits, refundCredits } = await import("@/lib/credits.server");
+    const spend = await spendCredits({
+      userId,
+      userEmail,
+      op: "segment_regenerate",
+      reason: "regenerate_segment",
+      metadata: { script_row_id: row.id, exercise_id: row.exercise_id },
     });
 
-    return { ok: true };
+    try {
+      await synthesizeAndPersistRow({
+        row: {
+          id: row.id,
+          sequence: row.sequence,
+          speaker_label: row.speaker_label,
+          transcript: row.transcript,
+          item_index: row.item_index,
+          audio_path: row.audio_path,
+          audio_generated_at: row.audio_generated_at,
+          audio_stale: row.audio_stale,
+          previous_transcript: row.previous_transcript,
+          previous_audio_path: row.previous_audio_path,
+          previous_generated_at: row.previous_generated_at,
+        },
+        voice,
+        assessmentId: ex.assessment_id,
+        exerciseId: ex.id,
+      });
+      return { ok: true };
+    } catch (err) {
+      if (spend.spent > 0) {
+        await refundCredits({
+          userId,
+          amount: spend.spent,
+          reason: "refund_regenerate_segment",
+          metadata: { script_row_id: row.id },
+        });
+      }
+      throw err;
+    }
   });
 
 export const revertSegment = createServerFn({ method: "POST" })
