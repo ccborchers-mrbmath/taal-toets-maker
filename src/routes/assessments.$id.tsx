@@ -659,6 +659,14 @@ function AudioBlock({ ex, onGenerated, onBusyChange }: { ex: FullPaper["exercise
               {t("Laai af", "Download")}
             </a>
           )}
+          <Link
+            to="/assessments/$id/audio-editor"
+            params={{ id: ex.assessment_id ?? "" }}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {t("Redigeer per snit", "Edit segments")}
+          </Link>
           <Button size="sm" variant="outline" onClick={generate} disabled={busy}>
             {busy ? (
               <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
