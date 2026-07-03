@@ -90,7 +90,12 @@ function silenceBytes(seconds: number): Uint8Array {
   return out;
 }
 
-async function ttsSegment(voice: ResolvedVoice, text: string): Promise<Uint8Array> {
+async function ttsSegment(
+  voice: ResolvedVoice,
+  text: string,
+  previousText?: string,
+  nextText?: string,
+): Promise<Uint8Array> {
   const key = process.env.ELEVENLABS_API_KEY;
   if (!key) throw new Error("ElevenLabs is not connected to this project");
 
@@ -98,6 +103,8 @@ async function ttsSegment(voice: ResolvedVoice, text: string): Promise<Uint8Arra
     text,
     model_id: TTS_MODEL,
     language_code: "af",
+    ...(previousText ? { previous_text: previousText } : {}),
+    ...(nextText ? { next_text: nextText } : {}),
     voice_settings: {
       stability: voice.settings.stability ?? 0.5,
       similarity_boost: voice.settings.similarity_boost ?? 0.75,
@@ -298,13 +305,38 @@ export const generateExerciseAudio = createServerFn({ method: "POST" })
     }
 
     // ---- Synthesise ----
+    // Build an index of TTS segments so we can pass neighbouring Afrikaans
+    // text as `previous_text` / `next_text` to ElevenLabs. This gives short
+    // lines enough context for the model to lock onto Afrikaans phonology
+    // instead of drifting toward Dutch. The context text is not spoken.
+    const CONTEXT_CHAR_LIMIT = 300;
+    const trimContext = (s: string) => {
+      const t = s.trim();
+      return t.length <= CONTEXT_CHAR_LIMIT ? t : t.slice(-CONTEXT_CHAR_LIMIT);
+    };
+    const ttsIndices: number[] = [];
+    segs.forEach((s, i) => {
+      if (s.kind === "tts" && s.text.trim()) ttsIndices.push(i);
+    });
+    const prevNextByIndex = new Map<number, { prev?: string; next?: string }>();
+    ttsIndices.forEach((segIdx, k) => {
+      const prevIdx = ttsIndices[k - 1];
+      const nextIdx = ttsIndices[k + 1];
+      prevNextByIndex.set(segIdx, {
+        prev: prevIdx !== undefined ? trimContext((segs[prevIdx] as { text: string }).text) : undefined,
+        next: nextIdx !== undefined ? trimContext((segs[nextIdx] as { text: string }).text) : undefined,
+      });
+    });
+
     const audioBufs: Uint8Array[] = [];
-    for (const seg of segs) {
+    for (let i = 0; i < segs.length; i++) {
+      const seg = segs[i];
       if (seg.kind === "silence") {
         audioBufs.push(silenceBytes(seg.seconds));
       } else if (seg.text.trim()) {
+        const ctx = prevNextByIndex.get(i) ?? {};
         // eslint-disable-next-line no-await-in-loop
-        audioBufs.push(await ttsSegment(seg.voice, seg.text.trim()));
+        audioBufs.push(await ttsSegment(seg.voice, seg.text.trim(), ctx.prev, ctx.next));
       }
     }
     const stitched = concat(audioBufs);
