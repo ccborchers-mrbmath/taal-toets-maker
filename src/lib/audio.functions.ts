@@ -25,7 +25,13 @@ const TTS_MODEL = "eleven_v3";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export const SILENCE_1S = Uint8Array.from(Buffer.from(SILENCE_1S_MP3_BASE64, "base64"));
+function base64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+export const SILENCE_1S = base64ToBytes(SILENCE_1S_MP3_BASE64);
 
 export type VoiceSettings = {
   stability?: number;
