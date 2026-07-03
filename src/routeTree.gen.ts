@@ -20,6 +20,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AssessmentsNewRouteImport } from './routes/assessments.new'
 import { Route as AssessmentsIdRouteImport } from './routes/assessments.$id'
+import { Route as AssessmentsIdAudioEditorRouteImport } from './routes/assessments.$id.audio-editor'
 
 const VoicesRoute = VoicesRouteImport.update({
   id: '/voices',
@@ -76,6 +77,12 @@ const AssessmentsIdRoute = AssessmentsIdRouteImport.update({
   path: '/assessments/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AssessmentsIdAudioEditorRoute =
+  AssessmentsIdAudioEditorRouteImport.update({
+    id: '/audio-editor',
+    path: '/audio-editor',
+    getParentRoute: () => AssessmentsIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -87,8 +94,9 @@ export interface FileRoutesByFullPath {
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/voices': typeof VoicesRoute
-  '/assessments/$id': typeof AssessmentsIdRoute
+  '/assessments/$id': typeof AssessmentsIdRouteWithChildren
   '/assessments/new': typeof AssessmentsNewRoute
+  '/assessments/$id/audio-editor': typeof AssessmentsIdAudioEditorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -100,8 +108,9 @@ export interface FileRoutesByTo {
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/voices': typeof VoicesRoute
-  '/assessments/$id': typeof AssessmentsIdRoute
+  '/assessments/$id': typeof AssessmentsIdRouteWithChildren
   '/assessments/new': typeof AssessmentsNewRoute
+  '/assessments/$id/audio-editor': typeof AssessmentsIdAudioEditorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -114,8 +123,9 @@ export interface FileRoutesById {
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/voices': typeof VoicesRoute
-  '/assessments/$id': typeof AssessmentsIdRoute
+  '/assessments/$id': typeof AssessmentsIdRouteWithChildren
   '/assessments/new': typeof AssessmentsNewRoute
+  '/assessments/$id/audio-editor': typeof AssessmentsIdAudioEditorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/voices'
     | '/assessments/$id'
     | '/assessments/new'
+    | '/assessments/$id/audio-editor'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/voices'
     | '/assessments/$id'
     | '/assessments/new'
+    | '/assessments/$id/audio-editor'
   id:
     | '__root__'
     | '/'
@@ -157,6 +169,7 @@ export interface FileRouteTypes {
     | '/voices'
     | '/assessments/$id'
     | '/assessments/new'
+    | '/assessments/$id/audio-editor'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -169,7 +182,7 @@ export interface RootRouteChildren {
   ShopRoute: typeof ShopRoute
   TermsRoute: typeof TermsRoute
   VoicesRoute: typeof VoicesRoute
-  AssessmentsIdRoute: typeof AssessmentsIdRoute
+  AssessmentsIdRoute: typeof AssessmentsIdRouteWithChildren
   AssessmentsNewRoute: typeof AssessmentsNewRoute
 }
 
@@ -252,8 +265,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssessmentsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/assessments/$id/audio-editor': {
+      id: '/assessments/$id/audio-editor'
+      path: '/audio-editor'
+      fullPath: '/assessments/$id/audio-editor'
+      preLoaderRoute: typeof AssessmentsIdAudioEditorRouteImport
+      parentRoute: typeof AssessmentsIdRoute
+    }
   }
 }
+
+interface AssessmentsIdRouteChildren {
+  AssessmentsIdAudioEditorRoute: typeof AssessmentsIdAudioEditorRoute
+}
+
+const AssessmentsIdRouteChildren: AssessmentsIdRouteChildren = {
+  AssessmentsIdAudioEditorRoute: AssessmentsIdAudioEditorRoute,
+}
+
+const AssessmentsIdRouteWithChildren = AssessmentsIdRoute._addFileChildren(
+  AssessmentsIdRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -265,7 +297,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShopRoute: ShopRoute,
   TermsRoute: TermsRoute,
   VoicesRoute: VoicesRoute,
-  AssessmentsIdRoute: AssessmentsIdRoute,
+  AssessmentsIdRoute: AssessmentsIdRouteWithChildren,
   AssessmentsNewRoute: AssessmentsNewRoute,
 }
 export const routeTree = rootRouteImport
