@@ -95,8 +95,6 @@ function silenceBytes(seconds: number): Uint8Array {
 async function ttsSegment(
   voice: ResolvedVoice,
   text: string,
-  previousText?: string,
-  nextText?: string,
 ): Promise<Uint8Array> {
   const key = process.env.ELEVENLABS_API_KEY;
   if (!key) throw new Error("ElevenLabs is not connected to this project");
@@ -105,8 +103,6 @@ async function ttsSegment(
     text,
     model_id: TTS_MODEL,
     language_code: "af",
-    ...(previousText ? { previous_text: previousText } : {}),
-    ...(nextText ? { next_text: nextText } : {}),
     voice_settings: {
       stability: voice.settings.stability ?? 0.5,
       similarity_boost: voice.settings.similarity_boost ?? 0.75,
