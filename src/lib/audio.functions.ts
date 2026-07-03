@@ -262,13 +262,8 @@ export function planExerciseSegments(
 // ------------- Exercise loader (shared) -------------
 
 export async function loadExerciseContext(
-  supabase: {
-    from: (t: string) => {
-      select: (s: string) => {
-        eq: (col: string, v: string) => { maybeSingle: () => Promise<{ data: unknown; error: { message: string } | null }> };
-      };
-    };
-  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
   userId: string,
   exerciseId: string,
 ) {
@@ -301,7 +296,6 @@ export async function loadExerciseContext(
   const { data: library } = await supabase
     .from("voice_cast")
     .select("id,voice_id,name,suitability,voice_settings")
-    // @ts-expect-error dynamic client
     .eq("created_by", userId);
   const byId = new Map<string, VoiceLibraryEntry>();
   for (const row of (library ?? []) as Array<{
