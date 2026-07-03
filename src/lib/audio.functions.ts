@@ -55,7 +55,10 @@ import { narratorVoiceId } from "@/lib/voices";
 import { SILENCE_1S_MP3_BASE64 } from "@/lib/silence";
 
 const SIGNED_URL_TTL = 60 * 60 * 24 * 7; // 7 days
-const TTS_MODEL = "eleven_v3";
+// eleven_multilingual_v2 honours `language_code` more strictly than eleven_v3
+// (important for Afrikaans not drifting to Dutch) AND supports request
+// stitching via previous_text/next_text, which eleven_v3 rejects.
+const TTS_MODEL = "eleven_multilingual_v2";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
