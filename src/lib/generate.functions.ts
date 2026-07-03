@@ -816,12 +816,14 @@ export const generatePaper = createServerFn({ method: "POST" })
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       await supabase.from("assessments").update({ status: "failed", generation_error: msg }).eq("id", data.assessment_id);
-      // Refund credit on failure (skip for unlimited users)
-      if (!unlimited && bal) {
-        await (supabaseAdmin as unknown as { from: (t: string) => { update: (p: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> } } })
-          .from("credit_balances").update({ balance: bal.balance }).eq("user_id", userId);
-        await (supabaseAdmin as unknown as { from: (t: string) => { insert: (r: Record<string, unknown>) => Promise<{ error: unknown }> } })
-          .from("credit_ledger").insert({ user_id: userId, delta: 1, reason: "refund_generate_paper", metadata: { assessment_id: data.assessment_id } });
+      // Refund credit on failure (skip for unlimited users, no-op if nothing was spent)
+      if (spend.spent > 0) {
+        await refundCredits({
+          userId,
+          amount: spend.spent,
+          reason: "refund_generate_paper",
+          metadata: { assessment_id: data.assessment_id },
+        });
       }
 
       throw new Error(msg);
