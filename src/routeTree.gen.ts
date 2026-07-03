@@ -19,6 +19,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AssessmentsNewRouteImport } from './routes/assessments.new'
+import { Route as AssessmentsIdRouteImport } from './routes/assessments.$id'
 import { Route as AssessmentsIdIndexRouteImport } from './routes/assessments.$id.index'
 import { Route as AssessmentsIdAudioEditorRouteImport } from './routes/assessments.$id.audio-editor'
 
@@ -72,16 +73,21 @@ const AssessmentsNewRoute = AssessmentsNewRouteImport.update({
   path: '/assessments/new',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AssessmentsIdIndexRoute = AssessmentsIdIndexRouteImport.update({
-  id: '/assessments/$id/',
-  path: '/assessments/$id/',
+const AssessmentsIdRoute = AssessmentsIdRouteImport.update({
+  id: '/assessments/$id',
+  path: '/assessments/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AssessmentsIdIndexRoute = AssessmentsIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AssessmentsIdRoute,
 } as any)
 const AssessmentsIdAudioEditorRoute =
   AssessmentsIdAudioEditorRouteImport.update({
-    id: '/assessments/$id/audio-editor',
-    path: '/assessments/$id/audio-editor',
-    getParentRoute: () => rootRouteImport,
+    id: '/audio-editor',
+    path: '/audio-editor',
+    getParentRoute: () => AssessmentsIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/voices': typeof VoicesRoute
+  '/assessments/$id': typeof AssessmentsIdRouteWithChildren
   '/assessments/new': typeof AssessmentsNewRoute
   '/assessments/$id/audio-editor': typeof AssessmentsIdAudioEditorRoute
   '/assessments/$id/': typeof AssessmentsIdIndexRoute
@@ -123,6 +130,7 @@ export interface FileRoutesById {
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/voices': typeof VoicesRoute
+  '/assessments/$id': typeof AssessmentsIdRouteWithChildren
   '/assessments/new': typeof AssessmentsNewRoute
   '/assessments/$id/audio-editor': typeof AssessmentsIdAudioEditorRoute
   '/assessments/$id/': typeof AssessmentsIdIndexRoute
@@ -139,6 +147,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/terms'
     | '/voices'
+    | '/assessments/$id'
     | '/assessments/new'
     | '/assessments/$id/audio-editor'
     | '/assessments/$id/'
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/terms'
     | '/voices'
+    | '/assessments/$id'
     | '/assessments/new'
     | '/assessments/$id/audio-editor'
     | '/assessments/$id/'
@@ -182,9 +192,8 @@ export interface RootRouteChildren {
   ShopRoute: typeof ShopRoute
   TermsRoute: typeof TermsRoute
   VoicesRoute: typeof VoicesRoute
+  AssessmentsIdRoute: typeof AssessmentsIdRouteWithChildren
   AssessmentsNewRoute: typeof AssessmentsNewRoute
-  AssessmentsIdAudioEditorRoute: typeof AssessmentsIdAudioEditorRoute
-  AssessmentsIdIndexRoute: typeof AssessmentsIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -259,22 +268,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssessmentsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/assessments/$id': {
+      id: '/assessments/$id'
+      path: '/assessments/$id'
+      fullPath: '/assessments/$id'
+      preLoaderRoute: typeof AssessmentsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/assessments/$id/': {
       id: '/assessments/$id/'
-      path: '/assessments/$id'
+      path: '/'
       fullPath: '/assessments/$id/'
       preLoaderRoute: typeof AssessmentsIdIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AssessmentsIdRoute
     }
     '/assessments/$id/audio-editor': {
       id: '/assessments/$id/audio-editor'
-      path: '/assessments/$id/audio-editor'
+      path: '/audio-editor'
       fullPath: '/assessments/$id/audio-editor'
       preLoaderRoute: typeof AssessmentsIdAudioEditorRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AssessmentsIdRoute
     }
   }
 }
+
+interface AssessmentsIdRouteChildren {
+  AssessmentsIdAudioEditorRoute: typeof AssessmentsIdAudioEditorRoute
+  AssessmentsIdIndexRoute: typeof AssessmentsIdIndexRoute
+}
+
+const AssessmentsIdRouteChildren: AssessmentsIdRouteChildren = {
+  AssessmentsIdAudioEditorRoute: AssessmentsIdAudioEditorRoute,
+  AssessmentsIdIndexRoute: AssessmentsIdIndexRoute,
+}
+
+const AssessmentsIdRouteWithChildren = AssessmentsIdRoute._addFileChildren(
+  AssessmentsIdRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -286,10 +316,19 @@ const rootRouteChildren: RootRouteChildren = {
   ShopRoute: ShopRoute,
   TermsRoute: TermsRoute,
   VoicesRoute: VoicesRoute,
+  AssessmentsIdRoute: AssessmentsIdRouteWithChildren,
   AssessmentsNewRoute: AssessmentsNewRoute,
-  AssessmentsIdAudioEditorRoute: AssessmentsIdAudioEditorRoute,
-  AssessmentsIdIndexRoute: AssessmentsIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
