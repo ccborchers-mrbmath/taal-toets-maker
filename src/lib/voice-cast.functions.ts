@@ -282,10 +282,8 @@ export const previewVoice = createServerFn({ method: "POST" })
       data.sample ??
       "Goeiedag almal, en welkom by die luistereksamen. Vandag gaan ons na 'n paar kort gesprekke luister oor die alledaagse lewe in Suid-Afrika.";
     const settings = {
-      stability: data.voice_settings?.stability ?? 0.55,
-      similarity_boost: data.voice_settings?.similarity_boost ?? 0.8,
-      style: data.voice_settings?.style ?? 0.25,
-      use_speaker_boost: true,
+      stability: data.voice_settings?.stability ?? 0.5,
+      similarity_boost: data.voice_settings?.similarity_boost ?? 0.75,
       ...(data.voice_settings?.speed ? { speed: data.voice_settings.speed } : {}),
     };
     const res = await fetch(
@@ -296,10 +294,12 @@ export const previewVoice = createServerFn({ method: "POST" })
         body: JSON.stringify({
           text: sample,
           model_id: "eleven_v3",
+          language_code: "af",
           voice_settings: settings,
         }),
       },
     );
+
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       throw new Error(`Preview failed (${res.status}): ${body.slice(0, 200)}`);
