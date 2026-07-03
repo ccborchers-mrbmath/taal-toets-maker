@@ -151,7 +151,7 @@ const STORAGE_KEY = "ll.locale";
 type Ctx = {
   locale: Locale;
   setLocale: (l: Locale) => void;
-  t: (key: string) => string;
+  t: (key: string, en?: string) => string;
 };
 
 const LanguageContext = createContext<Ctx | undefined>(undefined);
@@ -171,7 +171,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const t = useCallback(
-    (key: string) => dictionaries[locale][key] ?? dictionaries.en[key] ?? key,
+    (key: string, en?: string) => {
+      // Two-arg inline form: t("Afrikaans", "English")
+      if (en !== undefined) return locale === "en" ? en : key;
+      // Dictionary lookup form: t("dashboard.title")
+      return dictionaries[locale][key] ?? dictionaries.en[key] ?? key;
+    },
     [locale],
   );
 

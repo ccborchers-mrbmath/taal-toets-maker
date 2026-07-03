@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { useT } from "@/lib/i18n";
 import {
   generateStaleSegments,
   listExerciseSegments,
@@ -38,6 +39,7 @@ type Exercise = {
 
 function EditorContent() {
   const { id } = Route.useParams();
+  const { t } = useT();
 
   const assessmentQ = useQuery({
     queryKey: ["audio-editor-assessment", id],
@@ -59,10 +61,10 @@ function EditorContent() {
   });
 
   if (assessmentQ.isLoading) {
-    return <div className="mx-auto max-w-5xl px-4 py-10 text-sm text-muted-foreground">Laai …</div>;
+    return <div className="mx-auto max-w-5xl px-4 py-10 text-sm text-muted-foreground">{t("Laai …", "Loading …")}</div>;
   }
   if (!assessmentQ.data?.assessment) {
-    return <div className="mx-auto max-w-5xl px-4 py-10 text-sm text-muted-foreground">Vraestel nie gevind nie.</div>;
+    return <div className="mx-auto max-w-5xl px-4 py-10 text-sm text-muted-foreground">{t("Vraestel nie gevind nie.", "Paper not found.")}</div>;
   }
 
   const { assessment, exercises } = assessmentQ.data;
@@ -72,19 +74,25 @@ function EditorContent() {
       <div className="mb-6 flex items-center gap-3">
         <Button variant="ghost" size="sm" asChild>
           <Link to="/assessments/$id" params={{ id }}>
-            <ArrowLeft className="mr-1 h-4 w-4" /> Terug na vraestel
+            <ArrowLeft className="mr-1 h-4 w-4" /> {t("Terug na vraestel", "Back to paper")}
           </Link>
         </Button>
       </div>
       <div className="mb-8">
-        <h1 className="font-display text-3xl font-semibold">Klank-redakteur</h1>
+        <h1 className="font-display text-3xl font-semibold">{t("Klank-redakteur", "Audio editor")}</h1>
         <p className="text-sm text-muted-foreground">
           <span className="font-medium text-foreground">{assessment.title}</span>
           {" · "}
-          Redigeer enkele reëls, herstel klank per snit en vergelyk vorige weergawes.
+          {t(
+            "Redigeer enkele reëls, herstel klank per snit en vergelyk vorige weergawes.",
+            "Edit single lines, regenerate audio per segment and compare previous takes.",
+          )}
         </p>
         <p className="mt-2 text-xs text-muted-foreground">
-          Wenk: verander die woorde na 'n duideliker Afrikaanse frase (bv. "Lekker verjaarsdag" i.p.v. "Gelukkige verjaarsdag"), regenereer daardie een snit, en stik dan die oefening weer aan mekaar.
+          {t(
+            "Wenk: verander die woorde na 'n duideliker Afrikaanse frase (bv. \"Lekker verjaarsdag\" i.p.v. \"Gelukkige verjaarsdag\"), regenereer daardie een snit, en stik dan die oefening weer aan mekaar.",
+            "Tip: rephrase to a clearer Afrikaans expression (e.g. \"Lekker verjaarsdag\" instead of \"Gelukkige verjaarsdag\"), regenerate that single segment, then re-stitch the exercise.",
+          )}
         </p>
       </div>
 
@@ -99,6 +107,7 @@ function EditorContent() {
 
 function ExerciseEditor({ exercise }: { exercise: Exercise }) {
   const qc = useQueryClient();
+  const { t } = useT();
   const [busyRestitch, setBusyRestitch] = useState(false);
   const [busyStale, setBusyStale] = useState(false);
 
@@ -114,10 +123,15 @@ function ExerciseEditor({ exercise }: { exercise: Exercise }) {
     setBusyStale(true);
     try {
       const res = await generateStaleSegments({ data: { exercise_id: exercise.id } });
-      toast.success(`${res.synthesized} snit${res.synthesized === 1 ? "" : "te"} gesintetiseer`);
+      toast.success(
+        t(
+          `${res.synthesized} snit${res.synthesized === 1 ? "" : "te"} gesintetiseer`,
+          `${res.synthesized} segment${res.synthesized === 1 ? "" : "s"} synthesised`,
+        ),
+      );
       await qc.invalidateQueries({ queryKey: ["audio-editor-segments", exercise.id] });
     } catch (err) {
-      toast.error("Sintese misluk", { description: err instanceof Error ? err.message : String(err) });
+      toast.error(t("Sintese misluk", "Synthesis failed"), { description: err instanceof Error ? err.message : String(err) });
     } finally {
       setBusyStale(false);
     }
@@ -127,10 +141,10 @@ function ExerciseEditor({ exercise }: { exercise: Exercise }) {
     setBusyRestitch(true);
     try {
       await restitchExercise({ data: { exercise_id: exercise.id, allow_synthesis: true } });
-      toast.success("Oefening opnuut aanmekaar gestik");
+      toast.success(t("Oefening opnuut aanmekaar gestik", "Exercise re-stitched"));
       await qc.invalidateQueries({ queryKey: ["assessment-full"] });
     } catch (err) {
-      toast.error("Aanmekaarstik misluk", { description: err instanceof Error ? err.message : String(err) });
+      toast.error(t("Aanmekaarstik misluk", "Re-stitch failed"), { description: err instanceof Error ? err.message : String(err) });
     } finally {
       setBusyRestitch(false);
     }
@@ -140,38 +154,43 @@ function ExerciseEditor({ exercise }: { exercise: Exercise }) {
     <section className="rounded-xl border border-border bg-card p-4">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="font-display text-xl font-semibold">Oefening {exercise.number}</h2>
+          <h2 className="font-display text-xl font-semibold">
+            {t("Oefening", "Exercise")} {exercise.number}
+          </h2>
           <p className="line-clamp-1 max-w-xl text-xs text-muted-foreground">{exercise.rubric}</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">
-            {rows.length} reëls · {staleCount} nog nodig
+            {t(
+              `${rows.length} reëls · ${staleCount} nog nodig`,
+              `${rows.length} lines · ${staleCount} still needed`,
+            )}
           </span>
           <Button size="sm" variant="outline" onClick={onGenStale} disabled={busyStale || staleCount === 0}>
             {busyStale ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1 h-3.5 w-3.5" />}
-            Genereer verouderde
+            {t("Genereer verouderde", "Generate stale")}
           </Button>
           <Button size="sm" onClick={onRestitch} disabled={busyRestitch}>
             {busyRestitch ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Wand2 className="mr-1 h-3.5 w-3.5" />}
-            Stik oefening
+            {t("Stik oefening", "Stitch exercise")}
           </Button>
         </div>
       </header>
 
       {segsQ.isLoading ? (
-        <div className="py-6 text-center text-sm text-muted-foreground">Laai reëls …</div>
+        <div className="py-6 text-center text-sm text-muted-foreground">{t("Laai reëls …", "Loading lines …")}</div>
       ) : rows.length === 0 ? (
-        <div className="py-6 text-center text-sm text-muted-foreground">Geen transkripsie-reëls nog nie.</div>
+        <div className="py-6 text-center text-sm text-muted-foreground">{t("Geen transkripsie-reëls nog nie.", "No transcript lines yet.")}</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-separate border-spacing-y-2 text-sm">
             <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-2 py-1 w-12">#</th>
-                <th className="px-2 py-1 w-32">Spreker</th>
-                <th className="px-2 py-1">Teks (huidig)</th>
-                <th className="px-2 py-1 w-56">Klank (huidig)</th>
-                <th className="px-2 py-1 w-56">Vorige weergawe</th>
+                <th className="px-2 py-1 w-32">{t("Spreker", "Speaker")}</th>
+                <th className="px-2 py-1">{t("Teks (huidig)", "Text (current)")}</th>
+                <th className="px-2 py-1 w-56">{t("Klank (huidig)", "Audio (current)")}</th>
+                <th className="px-2 py-1 w-56">{t("Vorige weergawe", "Previous take")}</th>
               </tr>
             </thead>
             <tbody>
@@ -190,6 +209,7 @@ type SegRow = NonNullable<Awaited<ReturnType<typeof listExerciseSegments>>>["row
 
 function SegmentRow({ exerciseId, row }: { exerciseId: string; row: SegRow }) {
   const qc = useQueryClient();
+  const { t } = useT();
   const [text, setText] = useState(row.transcript);
   const [savingText, setSavingText] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -202,10 +222,10 @@ function SegmentRow({ exerciseId, row }: { exerciseId: string; row: SegRow }) {
     setSavingText(true);
     try {
       await updateScriptRowText({ data: { script_row_id: row.id, transcript: text.trim() } });
-      toast.success("Teks gestoor — klank as verouderd gemerk");
+      toast.success(t("Teks gestoor — klank as verouderd gemerk", "Text saved — audio marked stale"));
       await invalidate();
     } catch (err) {
-      toast.error("Kon nie stoor nie", { description: err instanceof Error ? err.message : String(err) });
+      toast.error(t("Kon nie stoor nie", "Could not save"), { description: err instanceof Error ? err.message : String(err) });
     } finally {
       setSavingText(false);
     }
@@ -213,21 +233,20 @@ function SegmentRow({ exerciseId, row }: { exerciseId: string; row: SegRow }) {
 
   const onRegenerate = async () => {
     if (dirty) {
-      // save first
       try {
         await updateScriptRowText({ data: { script_row_id: row.id, transcript: text.trim() } });
       } catch (err) {
-        toast.error("Kon nie teks stoor nie", { description: err instanceof Error ? err.message : String(err) });
+        toast.error(t("Kon nie teks stoor nie", "Could not save text"), { description: err instanceof Error ? err.message : String(err) });
         return;
       }
     }
     setRegenerating(true);
     try {
       await regenerateSegment({ data: { script_row_id: row.id } });
-      toast.success("Snit hergegenereer");
+      toast.success(t("Snit hergegenereer", "Segment regenerated"));
       await invalidate();
     } catch (err) {
-      toast.error("Regenerering misluk", { description: err instanceof Error ? err.message : String(err) });
+      toast.error(t("Regenerering misluk", "Regeneration failed"), { description: err instanceof Error ? err.message : String(err) });
     } finally {
       setRegenerating(false);
     }
@@ -237,26 +256,26 @@ function SegmentRow({ exerciseId, row }: { exerciseId: string; row: SegRow }) {
     setReverting(true);
     try {
       await revertSegment({ data: { script_row_id: row.id } });
-      toast.success("Teruggeruil na vorige weergawe");
+      toast.success(t("Teruggeruil na vorige weergawe", "Swapped back to previous take"));
       await invalidate();
     } catch (err) {
-      toast.error("Terugruil misluk", { description: err instanceof Error ? err.message : String(err) });
+      toast.error(t("Terugruil misluk", "Swap-back failed"), { description: err instanceof Error ? err.message : String(err) });
     } finally {
       setReverting(false);
     }
   };
 
   const status = !row.audio_url
-    ? { label: "Nog geen", className: "bg-muted text-muted-foreground" }
+    ? { label: t("Nog geen", "None yet"), className: "bg-muted text-muted-foreground" }
     : row.audio_stale
-      ? { label: "Verouderd", className: "bg-amber-100 text-amber-900" }
-      : { label: "Vars", className: "bg-emerald-100 text-emerald-900" };
+      ? { label: t("Verouderd", "Stale"), className: "bg-amber-100 text-amber-900" }
+      : { label: t("Vars", "Fresh"), className: "bg-emerald-100 text-emerald-900" };
 
   return (
     <tr className="align-top">
       <td className="px-2 py-2 text-xs text-muted-foreground">{row.sequence}</td>
       <td className="px-2 py-2">
-        <div className="text-xs font-medium">{row.speaker_label ?? "Verteller"}</div>
+        <div className="text-xs font-medium">{row.speaker_label ?? t("Verteller", "Narrator")}</div>
         <span className={`mt-1 inline-block rounded px-1.5 py-0.5 text-[10px] ${status.className}`}>
           {status.label}
         </span>
@@ -272,9 +291,9 @@ function SegmentRow({ exerciseId, row }: { exerciseId: string; row: SegRow }) {
           <div className="mt-1 flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={onSaveText} disabled={savingText}>
               {savingText ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null}
-              Stoor teks
+              {t("Stoor teks", "Save text")}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setText(row.transcript)}>Kanselleer</Button>
+            <Button size="sm" variant="ghost" onClick={() => setText(row.transcript)}>{t("Kanselleer", "Cancel")}</Button>
           </div>
         ) : null}
       </td>
@@ -282,7 +301,7 @@ function SegmentRow({ exerciseId, row }: { exerciseId: string; row: SegRow }) {
         {row.audio_url ? (
           <audio controls src={row.audio_url} className="mb-1 h-8 w-full" preload="none" />
         ) : (
-          <div className="mb-1 text-xs italic text-muted-foreground">Nog geen klank nie</div>
+          <div className="mb-1 text-xs italic text-muted-foreground">{t("Nog geen klank nie", "No audio yet")}</div>
         )}
         <Button size="sm" variant="outline" onClick={onRegenerate} disabled={regenerating}>
           {regenerating ? (
@@ -290,7 +309,7 @@ function SegmentRow({ exerciseId, row }: { exerciseId: string; row: SegRow }) {
           ) : (
             <RotateCcw className="mr-1 h-3.5 w-3.5" />
           )}
-          Regenereer
+          {t("Regenereer", "Regenerate")}
         </Button>
       </td>
       <td className="px-2 py-2">
@@ -304,7 +323,7 @@ function SegmentRow({ exerciseId, row }: { exerciseId: string; row: SegRow }) {
               ) : (
                 <Undo2 className="mr-1 h-3.5 w-3.5" />
               )}
-              Ruil terug
+              {t("Ruil terug", "Swap back")}
             </Button>
           </>
         ) : (
