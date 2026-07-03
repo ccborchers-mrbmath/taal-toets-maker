@@ -152,6 +152,39 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_grants: {
+        Row: {
+          amount: number
+          created_at: string
+          expires_at: string | null
+          id: string
+          metadata: Json
+          remaining: number
+          source: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json
+          remaining: number
+          source: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json
+          remaining?: number
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       credit_ledger: {
         Row: {
           created_at: string
@@ -176,6 +209,27 @@ export type Database = {
           metadata?: Json | null
           reason?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      credit_prices: {
+        Row: {
+          credits: number
+          description: string | null
+          op: string
+          updated_at: string
+        }
+        Insert: {
+          credits: number
+          description?: string | null
+          op: string
+          updated_at?: string
+        }
+        Update: {
+          credits?: number
+          description?: string | null
+          op?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -382,6 +436,57 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          metadata: Json
+          monthly_credits: number | null
+          provider: string
+          provider_customer_id: string | null
+          provider_subscription_id: string | null
+          status: string
+          tier: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          metadata?: Json
+          monthly_credits?: number | null
+          provider?: string
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          status?: string
+          tier?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          metadata?: Json
+          monthly_credits?: number | null
+          provider?: string
+          provider_customer_id?: string | null
+          provider_subscription_id?: string | null
+          status?: string
+          tier?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -456,12 +561,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_available_credits: { Args: { _user_id: string }; Returns: number }
+      get_credit_cost: { Args: { _op: string }; Returns: number }
+      grant_credits: {
+        Args: {
+          _amount: number
+          _expires_at?: string
+          _metadata?: Json
+          _source: string
+          _user_id: string
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      spend_credits: {
+        Args: {
+          _amount: number
+          _metadata?: Json
+          _reason: string
+          _user_id: string
+        }
+        Returns: number
       }
     }
     Enums: {

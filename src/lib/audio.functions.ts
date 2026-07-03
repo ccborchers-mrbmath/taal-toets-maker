@@ -463,27 +463,50 @@ export const generateExerciseAudio = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { ex, script, questions, narrator, resolveLabel } = await loadExerciseContext(
-      supabase as never,
+    const userEmail = ((context as { claims?: { email?: string } }).claims?.email ?? "").toLowerCase();
+
+    const { spendCredits, refundCredits } = await import("@/lib/credits.server");
+    const spend = await spendCredits({
       userId,
-      data.exercise_id,
-    );
-
-    const segs = planExerciseSegments(ex, script, questions, resolveLabel, narrator);
-    const rowById = new Map(script.map((r) => [r.id, r] as const));
-    const stitched = await assembleFromPlan(segs, {
-      assessmentId: ex.assessment_id,
-      exerciseId: ex.id,
-      rowById,
-      allowSynthesis: true,
+      userEmail,
+      op: "audio_exercise",
+      reason: "generate_exercise_audio",
+      metadata: { exercise_id: data.exercise_id },
     });
-    const audioUrl = await uploadExerciseAudio(ex.assessment_id, ex.id, stitched);
 
-    return {
-      exercise_id: ex.id,
-      audio_url: audioUrl,
-      bytes: stitched.length,
-    };
+    try {
+      const { ex, script, questions, narrator, resolveLabel } = await loadExerciseContext(
+        supabase as never,
+        userId,
+        data.exercise_id,
+      );
+
+      const segs = planExerciseSegments(ex, script, questions, resolveLabel, narrator);
+      const rowById = new Map(script.map((r) => [r.id, r] as const));
+      const stitched = await assembleFromPlan(segs, {
+        assessmentId: ex.assessment_id,
+        exerciseId: ex.id,
+        rowById,
+        allowSynthesis: true,
+      });
+      const audioUrl = await uploadExerciseAudio(ex.assessment_id, ex.id, stitched);
+
+      return {
+        exercise_id: ex.id,
+        audio_url: audioUrl,
+        bytes: stitched.length,
+      };
+    } catch (err) {
+      if (spend.spent > 0) {
+        await refundCredits({
+          userId,
+          amount: spend.spent,
+          reason: "refund_generate_exercise_audio",
+          metadata: { exercise_id: data.exercise_id },
+        });
+      }
+      throw err;
+    }
   });
 
 // Refresh a signed URL for already-generated audio without re-synthesising.
