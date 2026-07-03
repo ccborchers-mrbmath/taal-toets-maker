@@ -19,7 +19,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AssessmentsNewRouteImport } from './routes/assessments.new'
-import { Route as AssessmentsIdRouteImport } from './routes/assessments.$id'
+import { Route as AssessmentsIdIndexRouteImport } from './routes/assessments.$id.index'
 import { Route as AssessmentsIdAudioEditorRouteImport } from './routes/assessments.$id.audio-editor'
 
 const VoicesRoute = VoicesRouteImport.update({
@@ -72,16 +72,16 @@ const AssessmentsNewRoute = AssessmentsNewRouteImport.update({
   path: '/assessments/new',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AssessmentsIdRoute = AssessmentsIdRouteImport.update({
-  id: '/assessments/$id',
-  path: '/assessments/$id',
+const AssessmentsIdIndexRoute = AssessmentsIdIndexRouteImport.update({
+  id: '/assessments/$id/',
+  path: '/assessments/$id/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AssessmentsIdAudioEditorRoute =
   AssessmentsIdAudioEditorRouteImport.update({
-    id: '/audio-editor',
-    path: '/audio-editor',
-    getParentRoute: () => AssessmentsIdRoute,
+    id: '/assessments/$id/audio-editor',
+    path: '/assessments/$id/audio-editor',
+    getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -94,9 +94,9 @@ export interface FileRoutesByFullPath {
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/voices': typeof VoicesRoute
-  '/assessments/$id': typeof AssessmentsIdRouteWithChildren
   '/assessments/new': typeof AssessmentsNewRoute
   '/assessments/$id/audio-editor': typeof AssessmentsIdAudioEditorRoute
+  '/assessments/$id/': typeof AssessmentsIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -108,9 +108,9 @@ export interface FileRoutesByTo {
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/voices': typeof VoicesRoute
-  '/assessments/$id': typeof AssessmentsIdRouteWithChildren
   '/assessments/new': typeof AssessmentsNewRoute
   '/assessments/$id/audio-editor': typeof AssessmentsIdAudioEditorRoute
+  '/assessments/$id': typeof AssessmentsIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -123,9 +123,9 @@ export interface FileRoutesById {
   '/shop': typeof ShopRoute
   '/terms': typeof TermsRoute
   '/voices': typeof VoicesRoute
-  '/assessments/$id': typeof AssessmentsIdRouteWithChildren
   '/assessments/new': typeof AssessmentsNewRoute
   '/assessments/$id/audio-editor': typeof AssessmentsIdAudioEditorRoute
+  '/assessments/$id/': typeof AssessmentsIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -139,9 +139,9 @@ export interface FileRouteTypes {
     | '/shop'
     | '/terms'
     | '/voices'
-    | '/assessments/$id'
     | '/assessments/new'
     | '/assessments/$id/audio-editor'
+    | '/assessments/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -153,9 +153,9 @@ export interface FileRouteTypes {
     | '/shop'
     | '/terms'
     | '/voices'
-    | '/assessments/$id'
     | '/assessments/new'
     | '/assessments/$id/audio-editor'
+    | '/assessments/$id'
   id:
     | '__root__'
     | '/'
@@ -167,9 +167,9 @@ export interface FileRouteTypes {
     | '/shop'
     | '/terms'
     | '/voices'
-    | '/assessments/$id'
     | '/assessments/new'
     | '/assessments/$id/audio-editor'
+    | '/assessments/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -182,8 +182,9 @@ export interface RootRouteChildren {
   ShopRoute: typeof ShopRoute
   TermsRoute: typeof TermsRoute
   VoicesRoute: typeof VoicesRoute
-  AssessmentsIdRoute: typeof AssessmentsIdRouteWithChildren
   AssessmentsNewRoute: typeof AssessmentsNewRoute
+  AssessmentsIdAudioEditorRoute: typeof AssessmentsIdAudioEditorRoute
+  AssessmentsIdIndexRoute: typeof AssessmentsIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -258,34 +259,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssessmentsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/assessments/$id': {
-      id: '/assessments/$id'
+    '/assessments/$id/': {
+      id: '/assessments/$id/'
       path: '/assessments/$id'
-      fullPath: '/assessments/$id'
-      preLoaderRoute: typeof AssessmentsIdRouteImport
+      fullPath: '/assessments/$id/'
+      preLoaderRoute: typeof AssessmentsIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/assessments/$id/audio-editor': {
       id: '/assessments/$id/audio-editor'
-      path: '/audio-editor'
+      path: '/assessments/$id/audio-editor'
       fullPath: '/assessments/$id/audio-editor'
       preLoaderRoute: typeof AssessmentsIdAudioEditorRouteImport
-      parentRoute: typeof AssessmentsIdRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface AssessmentsIdRouteChildren {
-  AssessmentsIdAudioEditorRoute: typeof AssessmentsIdAudioEditorRoute
-}
-
-const AssessmentsIdRouteChildren: AssessmentsIdRouteChildren = {
-  AssessmentsIdAudioEditorRoute: AssessmentsIdAudioEditorRoute,
-}
-
-const AssessmentsIdRouteWithChildren = AssessmentsIdRoute._addFileChildren(
-  AssessmentsIdRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -297,19 +286,10 @@ const rootRouteChildren: RootRouteChildren = {
   ShopRoute: ShopRoute,
   TermsRoute: TermsRoute,
   VoicesRoute: VoicesRoute,
-  AssessmentsIdRoute: AssessmentsIdRouteWithChildren,
   AssessmentsNewRoute: AssessmentsNewRoute,
+  AssessmentsIdAudioEditorRoute: AssessmentsIdAudioEditorRoute,
+  AssessmentsIdIndexRoute: AssessmentsIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
