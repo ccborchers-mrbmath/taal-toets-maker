@@ -83,7 +83,6 @@ export async function refundCredits(opts: {
     _user_id: opts.userId,
     _amount: opts.amount,
     _source: "refund",
-    _expires_at: null,
     _metadata: { ...(opts.metadata ?? {}), refund_reason: opts.reason } as never,
   });
   if (error) throw new Error(`Refund failed: ${error.message}`);
