@@ -662,7 +662,7 @@ function AudioBlock({ ex, onGenerated, onBusyChange }: { ex: FullPaper["exercise
           )}
           <Link
             to="/assessments/$id/audio-editor"
-            params={{ id: ex.assessment_id ?? "" }}
+            params={{ id: assessmentId }}
             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
           >
             <Sparkles className="h-3.5 w-3.5" />
