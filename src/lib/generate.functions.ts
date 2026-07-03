@@ -404,6 +404,22 @@ Skryf alle inhoud in natuurlike Suid-Afrikaanse Afrikaans wat toepaslik is vir 1
 - Verskaf op die EERSTE beurt van elke unieke spreker in elke item 'n kort Afrikaanse "role_gloss" van 1–4 woorde (bv. 'kliënt', 'tienerseun', 'mansonderwyser', 'radio-omroeper', '16-jarige meisie'). Moenie geslag/ouderdom/aksent hier herhaal nie — dit is slegs 'n rol-etiket vir die transkripsie.
 - Sillabus-relevante temas: alledaagse lewe, skool, vryetyd, omgewing, werk/loopbane, kultuur, tegnologie.
 
+AFRIKAANS-EERS FRASEERREËLS (baie belangrik — die TTS-stem gly na Nederlands toe wanneer 'n sin ook Nederlands kán wees; kies altyd woorde en konstruksies wat ondubbelsinnig Afrikaans is, veral in kort sinne en openingsreëls):
+- Verkies duidelik-Afrikaanse woorde bo Nederlands-gedeelde vorme:
+  • "lekker" / "gaaf" waar natuurlik, i.p.v. "gelukkig"
+  • "baie" i.p.v. "veel"
+  • "sover" i.p.v. "tot dusver"
+  • "praatjie", "gesels", "kuier", "sommer", "mos", "dan nou" — alledaagse Afrikaanse register en diskoerspartikels
+  • "Veels geluk met jou verjaarsdag" of "Lekker verjaarsdag" i.p.v. "Gelukkige verjaarsdag"
+  • "Hoe gaan dit met jou dag sover?" i.p.v. "Hoe was jou dag tot dusver?"
+  • "Het jy …" (nooit "Heb je …" / "Het je …")
+  • "Ek is / ek's", "jy is / jy's", "hy het / hy't" — gebruik natuurlike Afrikaanse sametrekkings
+- Gebruik Afrikaanse dubbel-negatief natuurlik: "Ek weet nie of hy kom nie."
+- Gebruik "'n" (nooit "een" as onbepaalde lidwoord).
+- Vermy Nederlands-leunende woordorde en woordeskat (bv. "kunnen" → "kan"; "willen" → "wil"; "gaan naar" → "gaan na"; "met de" → "met die").
+- KORT sinne en groetreëls kry ekstra aandag: 'n enkele Nederlands-gedeelde sin klink verkeerd wanneer dit alleen deur die TTS uitgespreek word. Herformuleer sulke reëls totdat geen ryp Nederlandse leser dit as Nederlands sou herken nie.
+- Wanneer beide 'n Afrikaanse en 'n Nederlands-gedeelde vorm reg is, kies altyd die Afrikaanse een.
+
 ${cast}`;
 
   const userPrompt = `Genereer Oefening ${opts.exNum} van 'n ${opts.level === "extended" ? "UITGEBREIDE" : "KERN"}-vlak Cambridge IGCSE 0548/02 luistervraestel.
