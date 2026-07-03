@@ -50,6 +50,7 @@ export const generateOptionImage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const userEmail = ((context as { claims?: { email?: string } }).claims?.email ?? "").toLowerCase();
 
     // Authorize + load option via RLS-scoped client (assessments.user_id = userId)
     const { data: opt, error: optErr } = await supabase
@@ -67,28 +68,48 @@ export const generateOptionImage = createServerFn({ method: "POST" })
       questions: { exercises: { assessment_id: string } };
     }).questions.exercises.assessment_id;
 
-    const png = await generatePngFromPrompt(opt.image_prompt);
+    const { spendCredits, refundCredits } = await import("@/lib/credits.server");
+    const spend = await spendCredits({
+      userId,
+      userEmail,
+      op: "image_option",
+      reason: "generate_option_image",
+      metadata: { option_id: opt.id, assessment_id: assessmentId },
+    });
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const path = `${assessmentId}/${opt.id}.png`;
-    const { error: upErr } = await supabaseAdmin.storage
-      .from("option-images")
-      .upload(path, png, { contentType: "image/png", upsert: true });
-    if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
+    try {
+      const png = await generatePngFromPrompt(opt.image_prompt);
 
-    const { data: signed, error: signErr } = await supabaseAdmin.storage
-      .from("option-images")
-      .createSignedUrl(path, SIGNED_URL_TTL);
-    if (signErr || !signed) throw new Error(`Signed URL failed: ${signErr?.message ?? "unknown"}`);
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const path = `${assessmentId}/${opt.id}.png`;
+      const { error: upErr } = await supabaseAdmin.storage
+        .from("option-images")
+        .upload(path, png, { contentType: "image/png", upsert: true });
+      if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
 
-    const { error: updErr } = await supabaseAdmin
-      .from("question_options")
-      .update({ image_url: signed.signedUrl })
-      .eq("id", opt.id);
-    if (updErr) throw new Error(updErr.message);
+      const { data: signed, error: signErr } = await supabaseAdmin.storage
+        .from("option-images")
+        .createSignedUrl(path, SIGNED_URL_TTL);
+      if (signErr || !signed) throw new Error(`Signed URL failed: ${signErr?.message ?? "unknown"}`);
 
-    void userId;
-    return { option_id: opt.id, image_url: signed.signedUrl };
+      const { error: updErr } = await supabaseAdmin
+        .from("question_options")
+        .update({ image_url: signed.signedUrl })
+        .eq("id", opt.id);
+      if (updErr) throw new Error(updErr.message);
+
+      return { option_id: opt.id, image_url: signed.signedUrl };
+    } catch (err) {
+      if (spend.spent > 0) {
+        await refundCredits({
+          userId,
+          amount: spend.spent,
+          reason: "refund_generate_option_image",
+          metadata: { option_id: opt.id },
+        });
+      }
+      throw err;
+    }
   });
 
 // Refresh a signed URL for an already-generated image without regenerating.
