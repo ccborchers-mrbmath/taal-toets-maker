@@ -41,7 +41,7 @@ const TIERS: Tier[] = [
   {
     id: "basic",
     priceId: "basic_monthly",
-    name: { af: "Basies", en: "Basic" },
+    name: { af: "Luister Lab — Basic", en: "Luister Lab — Basic" },
     priceLabel: "R149",
     credits: 70,
     papers: 2,
@@ -53,7 +53,7 @@ const TIERS: Tier[] = [
   {
     id: "pro",
     priceId: "pro_monthly",
-    name: { af: "Pro", en: "Pro" },
+    name: { af: "Luister Lab — Pro", en: "Luister Lab — Pro" },
     priceLabel: "R329",
     credits: 160,
     papers: 5,
@@ -65,9 +65,10 @@ const TIERS: Tier[] = [
 ];
 
 const TOPUPS: TopUp[] = [
-  { priceId: "topup_small_once", name: { af: "1 vraestel", en: "1 paper" }, priceLabel: "R79", credits: 35 },
-  { priceId: "topup_large_once", name: { af: "2 vraestelle", en: "2 papers" }, priceLabel: "R149", credits: 65 },
+  { priceId: "topup_small_once", name: { af: "Top-up — 1 vraestel", en: "Top-up — 1 paper" }, priceLabel: "R79", credits: 35 },
+  { priceId: "topup_large_once", name: { af: "Top-up — 2 vraestelle", en: "Top-up — 2 papers" }, priceLabel: "R149", credits: 65 },
 ];
+
 
 function PricingContent() {
   const { t, locale } = useT();
@@ -99,6 +100,12 @@ function PricingContent() {
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <h1 className="font-display text-3xl font-semibold">{t("pricing.title")}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{t("pricing.subtitle")}</p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {af
+          ? "Alle pryse is in Suid-Afrikaanse rand (ZAR) en sluit toepaslike belasting/BTW uit. Belasting word volgens jou land by die Paddle-betaalskerm bygevoeg. Geen gratis proeftydperk nie — intekeninge hernu maandeliks totdat jy kanselleer."
+          : "All prices are in South African rand (ZAR) and exclude applicable taxes/VAT. Tax is added at the Paddle checkout based on your location. No free trial — subscriptions renew monthly until you cancel."}
+      </p>
+
 
       {!user && (
         <div className="paper mt-6 rounded-lg p-4 text-sm">
@@ -128,7 +135,9 @@ function PricingContent() {
               <div className="mt-3 flex items-baseline gap-1">
                 <span className="font-display text-3xl">{tier.priceLabel}</span>
                 <span className="text-sm text-muted-foreground">/{af ? "maand" : "mo"}</span>
+                <span className="ml-1 text-xs text-muted-foreground">{af ? "excl. BTW" : "excl. tax"}</span>
               </div>
+
               <div className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 {tier.credits} {t("credits.label")}
               </div>
@@ -186,7 +195,9 @@ function PricingContent() {
             <div className="font-display text-lg font-semibold">{tp.name[locale]}</div>
             <div className="mt-2 flex items-baseline gap-1">
               <span className="font-display text-2xl">{tp.priceLabel}</span>
+              <span className="ml-1 text-xs text-muted-foreground">{af ? "eenmalig · excl. BTW" : "one-off · excl. tax"}</span>
             </div>
+
             <div className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
               {tp.credits} {t("credits.label")}
             </div>
