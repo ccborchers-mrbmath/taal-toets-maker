@@ -3,10 +3,10 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useT } from "@/lib/i18n";
 import { useAuth } from "@/hooks/useAuth";
-import { useSubscription } from "@/hooks/useSubscription";
-import { createCustomerPortalSession } from "@/utils/payments.functions";
+import { useSubscription, isPastDue } from "@/hooks/useSubscription";
+import { createCustomerPortalSession, switchSubscriptionPlan } from "@/utils/payments.functions";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/account")({
   head: () => ({ meta: [{ title: "Rekening — Luister Lab" }] }),
@@ -21,12 +21,20 @@ function AccountPage() {
   );
 }
 
+const PLAN_LABEL: Record<string, { af: string; en: string; credits: number }> = {
+  basic_monthly: { af: "Basies (R149/m)", en: "Basic (R149/mo)", credits: 70 },
+  pro_monthly: { af: "Pro (R329/m)", en: "Pro (R329/mo)", credits: 160 },
+};
+const ALL_PLAN_IDS = ["basic_monthly", "pro_monthly"] as const;
+
 function AccountContent() {
   const { locale } = useT();
   const af = locale === "af";
   const { user } = useAuth();
-  const { subscription, isActive, loading } = useSubscription();
+  const { subscription, isActive, loading, refresh } = useSubscription();
   const [portalLoading, setPortalLoading] = useState(false);
+  const [switchingTo, setSwitchingTo] = useState<string | null>(null);
+  const pastDue = isPastDue(subscription);
 
   const openPortal = async () => {
     setPortalLoading(true);
@@ -42,6 +50,21 @@ function AccountContent() {
       setPortalLoading(false);
     }
   };
+
+  const handleSwitch = async (newPriceId: string) => {
+    setSwitchingTo(newPriceId);
+    try {
+      await switchSubscriptionPlan({ data: { newPriceId } });
+      toast.success(af ? "Plan verander" : "Plan switched");
+      // Give the webhook a moment then refresh.
+      setTimeout(() => { void refresh(); }, 1500);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Switch failed");
+    } finally {
+      setSwitchingTo(null);
+    }
+  };
+
 
   const periodEnd = subscription?.current_period_end
     ? new Date(subscription.current_period_end).toLocaleDateString(af ? "af-ZA" : "en-ZA", {
