@@ -1,0 +1,138 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { AppShell } from "@/components/AppShell";
+import { useT } from "@/lib/i18n";
+import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
+import { createCustomerPortalSession } from "@/utils/payments.functions";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+
+export const Route = createFileRoute("/account")({
+  head: () => ({ meta: [{ title: "Rekening — Luister Lab" }] }),
+  component: AccountPage,
+});
+
+function AccountPage() {
+  return (
+    <AppShell>
+      <AccountContent />
+    </AppShell>
+  );
+}
+
+function AccountContent() {
+  const { locale } = useT();
+  const af = locale === "af";
+  const { user } = useAuth();
+  const { subscription, isActive, loading } = useSubscription();
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  const openPortal = async () => {
+    setPortalLoading(true);
+    try {
+      const res = await createCustomerPortalSession();
+      const url = res.subscriptionUrls?.[0]?.cancelSubscription
+        ?? res.subscriptionUrls?.[0]?.updateSubscriptionPaymentMethod
+        ?? res.overviewUrl;
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Portal error");
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const periodEnd = subscription?.current_period_end
+    ? new Date(subscription.current_period_end).toLocaleDateString(af ? "af-ZA" : "en-ZA", {
+        year: "numeric", month: "long", day: "numeric",
+      })
+    : null;
+
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+      <h1 className="font-display text-3xl font-semibold">
+        {af ? "Rekening" : "Account"}
+      </h1>
+      <p className="mt-1 text-sm text-muted-foreground">{user?.email}</p>
+
+      <section className="paper mt-8 rounded-lg p-6">
+        <h2 className="font-display text-lg font-semibold">
+          {af ? "Intekening" : "Subscription"}
+        </h2>
+
+        {loading ? (
+          <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> {af ? "Laai…" : "Loading…"}
+          </div>
+        ) : !subscription || !isActive ? (
+          <div className="mt-3 space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              {af ? "Geen aktiewe intekening nie." : "No active subscription."}
+            </p>
+            <Link to="/pricing" className="inline-block underline">
+              {af ? "Bekyk pryse" : "View pricing"}
+            </Link>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-4">
+            <dl className="grid grid-cols-1 gap-y-3 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  {af ? "Plan" : "Plan"}
+                </dt>
+                <dd className="mt-0.5 font-medium capitalize">{subscription.tier}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  {af ? "Status" : "Status"}
+                </dt>
+                <dd className="mt-0.5 font-medium capitalize">
+                  {subscription.status}
+                  {subscription.cancel_at_period_end && (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      ({af ? "kanselleer aan siklus-einde" : "cancels at period end"})
+                    </span>
+                  )}
+                </dd>
+              </div>
+              {periodEnd && (
+                <div className="sm:col-span-2">
+                  <dt className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                    {subscription.cancel_at_period_end
+                      ? af ? "Toegang tot" : "Access until"
+                      : af ? "Volgende hernuwing" : "Next renewal"}
+                  </dt>
+                  <dd className="mt-0.5 font-medium">{periodEnd}</dd>
+                </div>
+              )}
+            </dl>
+            <div className="flex flex-wrap gap-2 pt-2">
+              <button
+                type="button"
+                onClick={openPortal}
+                disabled={portalLoading}
+                className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+              >
+                {portalLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {af ? "Bestuur / kanselleer" : "Manage / cancel"}
+              </button>
+              <Link
+                to="/pricing"
+                className="inline-flex items-center rounded-md px-4 py-2 text-sm font-medium underline"
+              >
+                {af ? "Verander plan of koop top-up" : "Change plan or buy top-up"}
+              </Link>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <p className="mt-6 text-xs text-muted-foreground">
+        {af
+          ? "Betalings word deur Paddle verwerk. Kanseleer enige tyd — krediete bly geldig tot einde van huidige siklus."
+          : "Payments are processed by Paddle. Cancel anytime — credits remain valid until the end of the current billing cycle."}
+      </p>
+    </div>
+  );
+}
