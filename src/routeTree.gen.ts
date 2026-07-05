@@ -17,11 +17,14 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
 import { Route as AssessmentsNewRouteImport } from './routes/assessments.new'
 import { Route as AssessmentsIdRouteImport } from './routes/assessments.$id'
 import { Route as AssessmentsIdIndexRouteImport } from './routes/assessments.$id.index'
 import { Route as AssessmentsIdAudioEditorRouteImport } from './routes/assessments.$id.audio-editor'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const VoicesRoute = VoicesRouteImport.update({
   id: '/voices',
@@ -63,9 +66,19 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
+  id: '/checkout/success',
+  path: '/checkout/success',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AssessmentsNewRoute = AssessmentsNewRouteImport.update({
@@ -89,9 +102,16 @@ const AssessmentsIdAudioEditorRoute =
     path: '/audio-editor',
     getParentRoute: () => AssessmentsIdRoute,
   } as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/pricing': typeof PricingRoute
@@ -102,11 +122,14 @@ export interface FileRoutesByFullPath {
   '/voices': typeof VoicesRoute
   '/assessments/$id': typeof AssessmentsIdRouteWithChildren
   '/assessments/new': typeof AssessmentsNewRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/assessments/$id/audio-editor': typeof AssessmentsIdAudioEditorRoute
   '/assessments/$id/': typeof AssessmentsIdIndexRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/pricing': typeof PricingRoute
@@ -116,12 +139,15 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/voices': typeof VoicesRoute
   '/assessments/new': typeof AssessmentsNewRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/assessments/$id/audio-editor': typeof AssessmentsIdAudioEditorRoute
   '/assessments/$id': typeof AssessmentsIdIndexRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/pricing': typeof PricingRoute
@@ -132,13 +158,16 @@ export interface FileRoutesById {
   '/voices': typeof VoicesRoute
   '/assessments/$id': typeof AssessmentsIdRouteWithChildren
   '/assessments/new': typeof AssessmentsNewRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/assessments/$id/audio-editor': typeof AssessmentsIdAudioEditorRoute
   '/assessments/$id/': typeof AssessmentsIdIndexRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account'
     | '/auth'
     | '/dashboard'
     | '/pricing'
@@ -149,11 +178,14 @@ export interface FileRouteTypes {
     | '/voices'
     | '/assessments/$id'
     | '/assessments/new'
+    | '/checkout/success'
     | '/assessments/$id/audio-editor'
     | '/assessments/$id/'
+    | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/account'
     | '/auth'
     | '/dashboard'
     | '/pricing'
@@ -163,11 +195,14 @@ export interface FileRouteTypes {
     | '/terms'
     | '/voices'
     | '/assessments/new'
+    | '/checkout/success'
     | '/assessments/$id/audio-editor'
     | '/assessments/$id'
+    | '/api/public/payments/webhook'
   id:
     | '__root__'
     | '/'
+    | '/account'
     | '/auth'
     | '/dashboard'
     | '/pricing'
@@ -178,12 +213,15 @@ export interface FileRouteTypes {
     | '/voices'
     | '/assessments/$id'
     | '/assessments/new'
+    | '/checkout/success'
     | '/assessments/$id/audio-editor'
     | '/assessments/$id/'
+    | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRoute
   AuthRoute: typeof AuthRoute
   DashboardRoute: typeof DashboardRoute
   PricingRoute: typeof PricingRoute
@@ -194,6 +232,8 @@ export interface RootRouteChildren {
   VoicesRoute: typeof VoicesRoute
   AssessmentsIdRoute: typeof AssessmentsIdRouteWithChildren
   AssessmentsNewRoute: typeof AssessmentsNewRoute
+  CheckoutSuccessRoute: typeof CheckoutSuccessRoute
+  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -254,11 +294,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/success': {
+      id: '/checkout/success'
+      path: '/checkout/success'
+      fullPath: '/checkout/success'
+      preLoaderRoute: typeof CheckoutSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/assessments/new': {
@@ -289,6 +343,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssessmentsIdAudioEditorRouteImport
       parentRoute: typeof AssessmentsIdRoute
     }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -308,6 +369,7 @@ const AssessmentsIdRouteWithChildren = AssessmentsIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRoute: AccountRoute,
   AuthRoute: AuthRoute,
   DashboardRoute: DashboardRoute,
   PricingRoute: PricingRoute,
@@ -318,6 +380,8 @@ const rootRouteChildren: RootRouteChildren = {
   VoicesRoute: VoicesRoute,
   AssessmentsIdRoute: AssessmentsIdRouteWithChildren,
   AssessmentsNewRoute: AssessmentsNewRoute,
+  CheckoutSuccessRoute: CheckoutSuccessRoute,
+  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
