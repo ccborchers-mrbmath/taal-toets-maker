@@ -142,19 +142,34 @@ function PricingContent() {
               </ul>
               <button
                 type="button"
-                disabled={loading || isCurrent || !user}
+                disabled={loading || isActive || !user}
                 onClick={() => handleBuy(tier.priceId)}
                 className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {isCurrent
                   ? af ? "Aktief" : "Active"
-                  : af ? "Teken in op " + tier.name.af : "Subscribe to " + tier.name.en}
+                  : isActive
+                    ? af ? "Verander op Rekening" : "Switch on Account"
+                    : af ? "Teken in op " + tier.name.af : "Subscribe to " + tier.name.en}
               </button>
             </div>
           );
         })}
       </div>
+
+      {isActive && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          {af
+            ? "Jy het reeds ’n aktiewe intekening. Verander plan op die "
+            : "You already have an active subscription. Switch plans on the "}
+          <Link to="/account" className="underline">
+            {af ? "Rekening-bladsy" : "Account page"}
+          </Link>
+          .
+        </p>
+      )}
+
 
       {/* Top-ups */}
       <h2 className="mt-10 font-display text-xl font-semibold">
