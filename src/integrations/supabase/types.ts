@@ -442,9 +442,12 @@ export type Database = {
           created_at: string
           current_period_end: string | null
           current_period_start: string | null
+          environment: string
           id: string
           metadata: Json
           monthly_credits: number | null
+          price_id: string | null
+          product_id: string | null
           provider: string
           provider_customer_id: string | null
           provider_subscription_id: string | null
@@ -458,9 +461,12 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
+          environment?: string
           id?: string
           metadata?: Json
           monthly_credits?: number | null
+          price_id?: string | null
+          product_id?: string | null
           provider?: string
           provider_customer_id?: string | null
           provider_subscription_id?: string | null
@@ -474,9 +480,12 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
+          environment?: string
           id?: string
           metadata?: Json
           monthly_credits?: number | null
+          price_id?: string | null
+          product_id?: string | null
           provider?: string
           provider_customer_id?: string | null
           provider_subscription_id?: string | null
@@ -572,6 +581,24 @@ export type Database = {
           _user_id: string
         }
         Returns: string
+      }
+      grant_subscription_credits: {
+        Args: {
+          _period_end: string
+          _price_id: string
+          _subscription_id: string
+          _transaction_id: string
+          _user_id: string
+        }
+        Returns: string
+      }
+      grant_topup_credits: {
+        Args: { _price_id: string; _transaction_id: string; _user_id: string }
+        Returns: string
+      }
+      has_active_subscription: {
+        Args: { _env?: string; _user_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
