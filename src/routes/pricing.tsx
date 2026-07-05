@@ -135,7 +135,9 @@ function PricingContent() {
               <div className="mt-3 flex items-baseline gap-1">
                 <span className="font-display text-3xl">{tier.priceLabel}</span>
                 <span className="text-sm text-muted-foreground">/{af ? "maand" : "mo"}</span>
+                <span className="ml-1 text-xs text-muted-foreground">{af ? "excl. BTW" : "excl. tax"}</span>
               </div>
+
               <div className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 {tier.credits} {t("credits.label")}
               </div>
