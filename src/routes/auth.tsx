@@ -10,6 +10,7 @@ import { useT } from "@/lib/i18n";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { PublicFooter } from "@/components/PublicFooter";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
