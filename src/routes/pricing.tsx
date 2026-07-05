@@ -119,7 +119,8 @@ function PricingContent() {
         </div>
         <div className="divide-y divide-border text-sm">
           {[...TIERS, ...TOPUPS].map((item) => {
-            const monthly = "id" in item;
+            const tier = TIERS.find((plan) => plan.priceId === item.priceId);
+            const monthly = tier !== undefined;
             return (
               <div key={item.priceId} className="grid gap-2 px-4 py-3 sm:grid-cols-[1.4fr_0.8fr_1.6fr] sm:items-center">
                 <div className="font-medium">{item.name}</div>
@@ -132,8 +133,8 @@ function PricingContent() {
                 <div className="text-muted-foreground">
                   {monthly
                     ? af
-                      ? `${item.credits} krediete per maand; ongeveer ${item.papers} volledige luistervraestelle.`
-                      : `${item.credits} credits per month; about ${item.papers} complete listening papers.`
+                      ? `${item.credits} krediete per maand; ongeveer ${tier.papers} volledige luistervraestelle.`
+                      : `${item.credits} credits per month; about ${tier.papers} complete listening papers.`
                     : af
                       ? `${item.credits} top-up krediete; verval nie.`
                       : `${item.credits} top-up credits; never expires.`}
