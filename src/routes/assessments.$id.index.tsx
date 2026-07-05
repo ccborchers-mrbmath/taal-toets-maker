@@ -7,6 +7,8 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useT } from "@/lib/i18n";
+import { isInsufficientCreditsError } from "@/lib/credits";
+import { useNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import { generatePaper } from "@/lib/generate.functions";
 import { generateOptionImage } from "@/lib/images.functions";
 import { generatePaperPdf } from "@/lib/pdf.functions";
@@ -76,6 +78,7 @@ function EditorContent() {
   const kicked = search.kicked === 1;
 
   const { t, locale } = useT();
+  const { showNoCreditsDialog } = useNoCreditsDialog();
   const [generating, setGenerating] = useState(false);
   const [showMarks, setShowMarks] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
@@ -127,7 +130,11 @@ function EditorContent() {
       await query.refetch();
       toast.success(locale === "af" ? "Vraestel gereed" : "Paper ready");
     } catch (err) {
-      toast.error(t("common.error"), { description: err instanceof Error ? err.message : String(err) });
+      if (isInsufficientCreditsError(err)) {
+        showNoCreditsDialog();
+      } else {
+        toast.error(t("common.error"), { description: err instanceof Error ? err.message : String(err) });
+      }
       await query.refetch();
     } finally {
       setGenerating(false);
@@ -297,6 +304,7 @@ function ExerciseBlock({
 }) {
 
   const { locale } = useT();
+  const { showNoCreditsDialog } = useNoCreditsDialog();
   const statements = Array.isArray(ex.statements) ? (ex.statements as { letter: string; text: string }[]) : null;
 
   const [pending, setPending] = useState<Record<string, boolean>>({});
@@ -311,15 +319,21 @@ function ExerciseBlock({
     (o) => !(urls[o.id] ?? o.image_url),
   );
 
-  async function genOne(optionId: string) {
+  async function genOne(optionId: string): Promise<boolean> {
     setPending((p) => ({ ...p, [optionId]: true }));
     try {
       const res = await generateOptionImage({ data: { option_id: optionId } });
       setUrls((u) => ({ ...u, [optionId]: res.image_url }));
+      return true;
     } catch (err) {
+      if (isInsufficientCreditsError(err)) {
+        showNoCreditsDialog();
+        return false;
+      }
       toast.error(locale === "af" ? "Beeld misluk" : "Image failed", {
         description: err instanceof Error ? err.message : String(err),
       });
+      return true;
     } finally {
       setPending((p) => ({ ...p, [optionId]: false }));
     }
@@ -331,7 +345,8 @@ function ExerciseBlock({
       for (const o of missing) {
         // sequential — keeps rate limits and per-image cost predictable
         // eslint-disable-next-line no-await-in-loop
-        await genOne(o.id);
+        const ok = await genOne(o.id);
+        if (!ok) return;
       }
       toast.success(locale === "af" ? "Beelde gegenereer" : "Images generated");
     } finally {
@@ -561,6 +576,7 @@ function PdfButton({
 
 function AudioBlock({ ex, onGenerated, onBusyChange }: { ex: FullPaper["exercises"][number]; onGenerated?: () => void; onBusyChange?: (busy: boolean) => void }) {
   const { locale } = useT();
+  const { showNoCreditsDialog } = useNoCreditsDialog();
   const { id: assessmentId } = Route.useParams();
   const t = (af: string, en: string) => (locale === "af" ? af : en);
   const [busy, setBusy] = useState(false);
@@ -606,9 +622,13 @@ function AudioBlock({ ex, onGenerated, onBusyChange }: { ex: FullPaper["exercise
       onGenerated?.();
 
     } catch (err) {
-      toast.error(t("Klank misluk", "Audio failed"), {
-        description: err instanceof Error ? err.message : String(err),
-      });
+      if (isInsufficientCreditsError(err)) {
+        showNoCreditsDialog();
+      } else {
+        toast.error(t("Klank misluk", "Audio failed"), {
+          description: err instanceof Error ? err.message : String(err),
+        });
+      }
     } finally {
       setBusy(false);
       onBusyChange?.(false);

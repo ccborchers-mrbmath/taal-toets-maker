@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "@/lib/i18n";
 import { Toaster } from "@/components/ui/sonner";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { NoCreditsDialogProvider } from "@/hooks/useNoCreditsDialog";
 
 function NotFoundComponent() {
   return (
@@ -128,9 +129,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
-        <PaymentTestModeBanner />
-        <Outlet />
-        <Toaster richColors position="top-right" />
+        <NoCreditsDialogProvider>
+          <PaymentTestModeBanner />
+          <Outlet />
+          <Toaster richColors position="top-right" />
+        </NoCreditsDialogProvider>
       </LanguageProvider>
     </QueryClientProvider>
   );
