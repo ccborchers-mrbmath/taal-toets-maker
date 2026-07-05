@@ -124,6 +124,8 @@ function AuthPage() {
           </div>
         </div>
       </main>
+      <PublicFooter />
     </div>
   );
 }
+
