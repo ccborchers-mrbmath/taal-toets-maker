@@ -149,11 +149,7 @@ async function handleSubscriptionCanceled(data: any, env: PaddleEnv) {
 async function handleTransactionCompleted(data: any, env: PaddleEnv) {
   const supabase = await getSupabase();
   const transactionId: string = data.id;
-  const priceId = data.items?.[0]?.price?.importMeta?.externalId as string | undefined;
-  if (!priceId) {
-    console.warn("[paddle-webhook] transaction.completed missing importMeta.externalId");
-    return;
-  }
+  const txnPriceId = data.items?.[0]?.price?.importMeta?.externalId as string | undefined;
 
   // Locate the user via customData on the transaction, or via linked subscription.
   let userId: string | undefined = data.customData?.userId;
@@ -162,10 +158,19 @@ async function handleTransactionCompleted(data: any, env: PaddleEnv) {
     // Subscription transaction (initial + every renewal) → grant monthly credits.
     const { data: sub } = await supabase
       .from("subscriptions")
-      .select("user_id, current_period_end")
+      .select("user_id, current_period_end, price_id")
       .eq("provider_subscription_id", data.subscriptionId)
       .eq("environment", env)
       .maybeSingle();
+
+    // Paddle doesn't reliably include price.importMeta on the transaction
+    // payload for the initial subscription transaction — fall back to the
+    // price_id already recorded on the subscription row by subscription.created.
+    const priceId = txnPriceId ?? sub?.price_id ?? undefined;
+    if (!priceId) {
+      console.warn("[paddle-webhook] subscription txn: could not resolve price_id", { transactionId });
+      return;
+    }
 
     userId = userId ?? sub?.user_id ?? undefined;
     if (!userId) {
@@ -190,14 +195,20 @@ async function handleTransactionCompleted(data: any, env: PaddleEnv) {
     return;
   }
 
-  // One-off top-up purchase → grant top-up credits (no expiry).
+  // One-off top-up purchase → grant top-up credits (no expiry). Top-ups have
+  // no linked subscription row to fall back on, so the transaction itself
+  // must carry the price mapping.
+  if (!txnPriceId) {
+    console.warn("[paddle-webhook] transaction.completed missing importMeta.externalId");
+    return;
+  }
   if (!userId) {
     console.warn("[paddle-webhook] top-up missing customData.userId", { transactionId });
     return;
   }
   const { error } = await supabase.rpc("grant_topup_credits", {
     _user_id: userId,
-    _price_id: priceId,
+    _price_id: txnPriceId,
     _transaction_id: transactionId,
   });
   if (error) console.error("[paddle-webhook] grant_topup_credits failed:", error.message);
