@@ -41,7 +41,7 @@ const TIERS: Tier[] = [
   {
     id: "basic",
     priceId: "basic_monthly",
-    name: { af: "Basies", en: "Basic" },
+    name: { af: "Luister Lab — Basic", en: "Luister Lab — Basic" },
     priceLabel: "R149",
     credits: 70,
     papers: 2,
@@ -53,7 +53,7 @@ const TIERS: Tier[] = [
   {
     id: "pro",
     priceId: "pro_monthly",
-    name: { af: "Pro", en: "Pro" },
+    name: { af: "Luister Lab — Pro", en: "Luister Lab — Pro" },
     priceLabel: "R329",
     credits: 160,
     papers: 5,
@@ -65,9 +65,10 @@ const TIERS: Tier[] = [
 ];
 
 const TOPUPS: TopUp[] = [
-  { priceId: "topup_small_once", name: { af: "1 vraestel", en: "1 paper" }, priceLabel: "R79", credits: 35 },
-  { priceId: "topup_large_once", name: { af: "2 vraestelle", en: "2 papers" }, priceLabel: "R149", credits: 65 },
+  { priceId: "topup_small_once", name: { af: "Top-up — 1 vraestel", en: "Top-up — 1 paper" }, priceLabel: "R79", credits: 35 },
+  { priceId: "topup_large_once", name: { af: "Top-up — 2 vraestelle", en: "Top-up — 2 papers" }, priceLabel: "R149", credits: 65 },
 ];
+
 
 function PricingContent() {
   const { t, locale } = useT();
