@@ -62,10 +62,23 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
 
 async function handleSubscriptionUpdated(data: any, env: PaddleEnv) {
   const supabase = await getSupabase();
+  const newPriceId = data.items?.[0]?.price?.importMeta?.externalId as string | undefined;
+
+  // Fetch prior state so we can detect plan changes.
+  const { data: prior } = await supabase
+    .from("subscriptions")
+    .select("user_id, price_id")
+    .eq("provider_subscription_id", data.id)
+    .eq("environment", env)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("subscriptions")
     .update({
       status: data.status,
+      price_id: newPriceId ?? prior?.price_id,
+      tier: tierFromPriceId(newPriceId) ?? undefined,
+      monthly_credits: monthlyCreditsFor(newPriceId) ?? undefined,
       current_period_start: data.currentBillingPeriod?.startsAt,
       current_period_end: data.currentBillingPeriod?.endsAt,
       cancel_at_period_end: data.scheduledChange?.action === "cancel",
@@ -74,17 +87,62 @@ async function handleSubscriptionUpdated(data: any, env: PaddleEnv) {
     .eq("provider_subscription_id", data.id)
     .eq("environment", env);
   if (error) console.error("[paddle-webhook] update failed:", error.message);
+
+  // past_due → payment failed, revoke access immediately.
+  if (data.status === "past_due" && prior?.user_id) {
+    await supabase.rpc("revoke_user_credits", {
+      _user_id: prior.user_id,
+      _reason: "past_due",
+    });
+    return;
+  }
+
+  // Plan change (upgrade/downgrade). Prorate: on upgrade, grant the difference now.
+  if (
+    prior?.user_id &&
+    newPriceId &&
+    prior.price_id &&
+    newPriceId !== prior.price_id &&
+    data.currentBillingPeriod?.endsAt
+  ) {
+    await supabase.rpc("grant_upgrade_credits", {
+      _user_id: prior.user_id,
+      _old_price_id: prior.price_id,
+      _new_price_id: newPriceId,
+      _period_end: data.currentBillingPeriod.endsAt,
+      _subscription_id: data.id,
+      _change_key: `${data.id}:${newPriceId}:${data.currentBillingPeriod.startsAt}`,
+    });
+  }
 }
 
 async function handleSubscriptionCanceled(data: any, env: PaddleEnv) {
   const supabase = await getSupabase();
+  const { data: sub } = await supabase
+    .from("subscriptions")
+    .select("user_id")
+    .eq("provider_subscription_id", data.id)
+    .eq("environment", env)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("subscriptions")
     .update({ status: "canceled", updated_at: new Date().toISOString() })
     .eq("provider_subscription_id", data.id)
     .eq("environment", env);
   if (error) console.error("[paddle-webhook] cancel failed:", error.message);
+
+  // subscription.canceled fires when the cancellation takes effect (end of
+  // paid period for scheduled cancels). Revoke all remaining credits,
+  // including one-off top-ups.
+  if (sub?.user_id) {
+    await supabase.rpc("revoke_user_credits", {
+      _user_id: sub.user_id,
+      _reason: "subscription_canceled",
+    });
+  }
 }
+
 
 // transaction.completed fires for initial subscription payment, renewals, and
 // one-off top-up purchases. We use it as the credit-grant trigger.

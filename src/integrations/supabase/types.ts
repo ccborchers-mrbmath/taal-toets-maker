@@ -596,6 +596,17 @@ export type Database = {
         Args: { _price_id: string; _transaction_id: string; _user_id: string }
         Returns: string
       }
+      grant_upgrade_credits: {
+        Args: {
+          _change_key: string
+          _new_price_id: string
+          _old_price_id: string
+          _period_end: string
+          _subscription_id: string
+          _user_id: string
+        }
+        Returns: string
+      }
       has_active_subscription: {
         Args: { _env?: string; _user_id: string }
         Returns: boolean
@@ -606,6 +617,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      revoke_user_credits: {
+        Args: { _reason: string; _user_id: string }
+        Returns: number
       }
       spend_credits: {
         Args: {
