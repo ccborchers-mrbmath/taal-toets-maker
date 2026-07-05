@@ -100,6 +100,12 @@ function PricingContent() {
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <h1 className="font-display text-3xl font-semibold">{t("pricing.title")}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{t("pricing.subtitle")}</p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {af
+          ? "Alle pryse is in Suid-Afrikaanse rand (ZAR) en sluit toepaslike belasting/BTW uit. Belasting word volgens jou land by die Paddle-betaalskerm bygevoeg. Geen gratis proeftydperk nie — intekeninge hernu maandeliks totdat jy kanselleer."
+          : "All prices are in South African rand (ZAR) and exclude applicable taxes/VAT. Tax is added at the Paddle checkout based on your location. No free trial — subscriptions renew monthly until you cancel."}
+      </p>
+
 
       {!user && (
         <div className="paper mt-6 rounded-lg p-4 text-sm">
