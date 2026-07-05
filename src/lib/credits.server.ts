@@ -27,7 +27,6 @@ export async function getAvailableCredits(userId: string): Promise<number> {
 /**
  * Atomically spend `amount` credits (or the cost of `op` if amount omitted).
  * Returns the new available balance. Throws "Insufficient credits" if short.
- * Unlimited users are exempted and the call becomes a no-op returning -1.
  */
 export async function spendCredits(opts: {
   userId: string;
@@ -37,9 +36,7 @@ export async function spendCredits(opts: {
   reason?: string;
   metadata?: Record<string, unknown>;
 }): Promise<{ spent: number; balance: number; unlimited: boolean }> {
-  if (isUnlimitedEmail(opts.userEmail)) {
-    return { spent: 0, balance: -1, unlimited: true };
-  }
+
   const amount = opts.amount ?? (await getCreditCost(opts.op));
   if (amount <= 0) {
     return { spent: 0, balance: await getAvailableCredits(opts.userId), unlimited: false };
