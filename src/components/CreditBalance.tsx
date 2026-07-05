@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Coins } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useT } from "@/lib/i18n";
