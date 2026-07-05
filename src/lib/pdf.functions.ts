@@ -221,7 +221,7 @@ function rule(ctx: Ctx) {
 
 async function renderCover(ctx: Ctx, a: FullPaper["assessment"], kindLabel: string) {
   ctx.y = PAGE_H - MARGIN - 40;
-  ctx.page.drawText("CAMBRIDGE IGCSE", { x: MARGIN, y: ctx.y, size: 10, font: ctx.bold, color: rgb(0.2, 0.25, 0.4) });
+  ctx.page.drawText("AFRIKAANS TWEEDE TAAL", { x: MARGIN, y: ctx.y, size: 10, font: ctx.bold, color: rgb(0.2, 0.25, 0.4) });
   ctx.y -= 16;
   ctx.page.drawText(sanitize(a.paper_code), { x: MARGIN, y: ctx.y, size: 10, font: ctx.font, color: rgb(0.35, 0.35, 0.4) });
   ctx.y -= 28;
@@ -229,7 +229,7 @@ async function renderCover(ctx: Ctx, a: FullPaper["assessment"], kindLabel: stri
   gap(ctx, 6);
   drawText(ctx, kindLabel, { size: 13, font: ctx.italic, color: rgb(0.35, 0.35, 0.4) });
   gap(ctx, 4);
-  drawText(ctx, `Vlak: ${a.level === "extended" ? "Uitgebreid (Extended)" : "Kern (Core)"}`, {
+  drawText(ctx, `Vlak: ${a.level === "extended" ? "Uitgebreid" : "Kern"}`, {
     size: 10,
     color: rgb(0.35, 0.35, 0.4),
   });
@@ -286,40 +286,19 @@ async function renderPaperCover(
     page.drawText("goes here", { x: MARGIN, y: bandCentreY - 8, size: 9, font: ctx.font, color: rgb(0.4, 0.4, 0.45) });
   }
 
-  // Cambridge Assessment International Education wordmark (crest + text),
-  // right-aligned at the opposite margin, same height as the school logo.
-  try {
-    const { cambridgeLogoBytes, CAMBRIDGE_LOGO_WIDTH, CAMBRIDGE_LOGO_HEIGHT } =
-      await import("./cambridge-logo");
-    const camEmbed = await ctx.doc.embedPng(cambridgeLogoBytes());
-    const fullW = (CAMBRIDGE_LOGO_WIDTH / CAMBRIDGE_LOGO_HEIGHT) * logoBoxH;
-    const camW = fullW * 0.4;
-    const camH = logoBoxH * 0.4;
-    page.drawImage(camEmbed, {
-      x: PAGE_W - MARGIN - camW,
-      y: bandCentreY - camH / 2,
-      width: camW,
-      height: camH,
-    });
-  } catch {
-    const caRight = PAGE_W - MARGIN;
-    const caW1 = ctx.bold.widthOfTextAtSize("Cambridge Assessment", 12);
-    const caW2 = ctx.bold.widthOfTextAtSize("International Education", 12);
-    page.drawText("Cambridge Assessment", { x: caRight - caW1, y: bandCentreY + 2, size: 12, font: ctx.bold, color: rgb(0.1, 0.15, 0.35) });
-    page.drawText("International Education", { x: caRight - caW2, y: bandCentreY - 14, size: 12, font: ctx.bold, color: rgb(0.1, 0.15, 0.35) });
-  }
+  // (Right side of top band intentionally left blank — this is an
+  // independent practice paper with no affiliation to any exam board.)
 
-
-  // --- "Cambridge IGCSE™" title
+  // --- Title
   let y = topY - logoBoxH - 28;
-  page.drawText("Cambridge IGCSE\u2122", { x: MARGIN, y, size: 22, font: ctx.bold });
+  page.drawText("Afrikaans Tweede Taal", { x: MARGIN, y, size: 22, font: ctx.bold });
   y -= 26;
 
-  // --- Subject row: "AFRIKAANS AS A SECOND LANGUAGE"   [date]   0548/02
+  // --- Subject row: "AFRIKAANS AS A SECOND LANGUAGE"   [date]   paper code
   const subject = "AFRIKAANS AS A SECOND LANGUAGE";
   page.drawText(subject, { x: MARGIN, y, size: 12, font: ctx.bold });
   // Paper code far right
-  const codeText = a.paper_code || "0548/02";
+  const codeText = a.paper_code || "Luister";
   const codeW = ctx.bold.widthOfTextAtSize(codeText, 12);
   page.drawText(codeText, { x: PAGE_W - MARGIN - codeW, y, size: 12, font: ctx.bold });
   y -= 16;
@@ -843,7 +822,7 @@ function drawTurns(ctx: Ctx, turns: ScriptTurn[]) {
 
 function renderTranscriptCover(ctx: Ctx, a: FullPaper["assessment"]) {
   ctx.y = PAGE_H - MARGIN - 30;
-  ctx.page.drawText("Cambridge IGCSE", {
+  ctx.page.drawText("Afrikaans Tweede Taal", {
     x: MARGIN,
     y: ctx.y,
     size: 11,
@@ -854,8 +833,7 @@ function renderTranscriptCover(ctx: Ctx, a: FullPaper["assessment"]) {
   drawText(ctx, "AFRIKAANS AS A SECOND LANGUAGE", { size: 16, font: ctx.bold });
   drawText(ctx, `${a.paper_code}`, { size: 11, color: rgb(0.35, 0.35, 0.4) });
   gap(ctx, 4);
-  drawText(ctx, "Paper 2 Listening", { size: 12, font: ctx.bold });
-  drawText(ctx, "For examination from 2025", { size: 10, color: rgb(0.35, 0.35, 0.4) });
+  drawText(ctx, "Listening — Practice paper", { size: 12, font: ctx.bold });
   gap(ctx, 16);
   drawText(ctx, "TRANSCRIPT", { size: 13, font: ctx.bold });
   drawText(ctx, "Approximately 50 minutes (including 6 minutes' transfer time)", {
@@ -871,7 +849,7 @@ function renderTranscript(ctx: Ctx, p: FullPaper) {
   renderTranscriptCover(ctx, p.assessment);
   drawNarratorLine(
     ctx,
-    `Cambridge Assessment International Education, Cambridge IGCSE Afrikaans as a Second Language, ${p.assessment.paper_code}, Paper 2, Listening.`,
+    `Afrikaans as a Second Language — Listening practice paper (${p.assessment.paper_code}).`,
   );
   drawNarratorLine(ctx, "[BEEP]");
 
