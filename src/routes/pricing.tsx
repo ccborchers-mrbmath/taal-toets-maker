@@ -42,31 +42,51 @@ const TIERS: Tier[] = [
     id: "basic",
     priceId: "basic_monthly",
     name: "Luister Lab — Basic",
-    priceLabel: "R149",
-    credits: 70,
-    papers: 2,
+    priceLabel: "R199",
+    credits: 45,
+    papers: 1,
     perks: {
-      af: ["70 krediete per maand", "Genoeg vir ongeveer 2 volledige luistervraestelle", "PDF, memorandum, transkripsie en klankuitvoer is ingesluit wanneer krediete gebruik word", "Geen gratis proeftydperk nie; kanselleer enige tyd"],
-      en: ["70 credits per month", "Enough for about 2 complete listening papers", "PDF, mark scheme, transcript and audio export are included when credits are used", "No free trial; cancel anytime"],
+      af: [
+        "45 krediete per maand",
+        "Genoeg vir een volledige luistervraestel plus ’n paar regstellings en beeld-hergenerasies",
+        "PDF, memorandum, transkripsie en klankuitvoer is ingesluit wanneer krediete gebruik word",
+        "Geen gratis proeftydperk nie; kanselleer enige tyd",
+      ],
+      en: [
+        "45 credits per month",
+        "Enough for one complete listening paper plus a few corrections and image regenerations",
+        "PDF, mark scheme, transcript and audio export are included when credits are used",
+        "No free trial; cancel anytime",
+      ],
     },
   },
   {
     id: "pro",
     priceId: "pro_monthly",
     name: "Luister Lab — Pro",
-    priceLabel: "R329",
-    credits: 160,
-    papers: 5,
+    priceLabel: "R449",
+    credits: 140,
+    papers: 4,
     perks: {
-      af: ["160 krediete per maand", "Genoeg vir ongeveer 5 volledige luistervraestelle", "PDF, memorandum, transkripsie en klankuitvoer is ingesluit wanneer krediete gebruik word", "Geen gratis proeftydperk nie; kanselleer enige tyd"],
-      en: ["160 credits per month", "Enough for about 5 complete listening papers", "PDF, mark scheme, transcript and audio export are included when credits are used", "No free trial; cancel anytime"],
+      af: [
+        "140 krediete per maand",
+        "Genoeg vir ongeveer 4 volledige luistervraestelle",
+        "PDF, memorandum, transkripsie en klankuitvoer is ingesluit wanneer krediete gebruik word",
+        "Geen gratis proeftydperk nie; kanselleer enige tyd",
+      ],
+      en: [
+        "140 credits per month",
+        "Enough for about 4 complete listening papers",
+        "PDF, mark scheme, transcript and audio export are included when credits are used",
+        "No free trial; cancel anytime",
+      ],
     },
   },
 ];
 
 const TOPUPS: TopUp[] = [
-  { priceId: "topup_small_once", name: "Top-up — 1 paper", priceLabel: "R79", credits: 35 },
-  { priceId: "topup_large_once", name: "Top-up — 2 papers", priceLabel: "R149", credits: 65 },
+  { priceId: "topup_small_once", name: "Top-up — 1 paper", priceLabel: "R99", credits: 35 },
+  { priceId: "topup_large_once", name: "Top-up — 2 papers", priceLabel: "R179", credits: 70 },
 ];
 
 
