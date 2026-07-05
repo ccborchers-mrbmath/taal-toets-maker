@@ -23,7 +23,7 @@ function PricingPage() {
 type Tier = {
   id: "basic" | "pro";
   priceId: string;
-  name: { af: string; en: string };
+  name: string;
   priceLabel: string;
   credits: number;
   papers: number;
@@ -32,7 +32,7 @@ type Tier = {
 
 type TopUp = {
   priceId: string;
-  name: { af: string; en: string };
+  name: string;
   priceLabel: string;
   credits: number;
 };
@@ -41,32 +41,32 @@ const TIERS: Tier[] = [
   {
     id: "basic",
     priceId: "basic_monthly",
-    name: { af: "Luister Lab — Basic", en: "Luister Lab — Basic" },
+    name: "Luister Lab — Basic",
     priceLabel: "R149",
     credits: 70,
     papers: 2,
     perks: {
-      af: ["70 krediete per maand", "Genoeg vir ±2 volle vraestelle", "Ongebruikte krediete rol een siklus oor", "Kanselleer enige tyd"],
-      en: ["70 credits per month", "Enough for ~2 full papers", "Unused credits roll over one cycle", "Cancel anytime"],
+      af: ["70 krediete per maand", "Genoeg vir ongeveer 2 volledige luistervraestelle", "PDF, memorandum, transkripsie en klankuitvoer is ingesluit wanneer krediete gebruik word", "Geen gratis proeftydperk nie; kanselleer enige tyd"],
+      en: ["70 credits per month", "Enough for about 2 complete listening papers", "PDF, mark scheme, transcript and audio export are included when credits are used", "No free trial; cancel anytime"],
     },
   },
   {
     id: "pro",
     priceId: "pro_monthly",
-    name: { af: "Luister Lab — Pro", en: "Luister Lab — Pro" },
+    name: "Luister Lab — Pro",
     priceLabel: "R329",
     credits: 160,
     papers: 5,
     perks: {
-      af: ["160 krediete per maand", "Genoeg vir ±5 volle vraestelle", "Ongebruikte krediete rol een siklus oor", "Kanselleer enige tyd"],
-      en: ["160 credits per month", "Enough for ~5 full papers", "Unused credits roll over one cycle", "Cancel anytime"],
+      af: ["160 krediete per maand", "Genoeg vir ongeveer 5 volledige luistervraestelle", "PDF, memorandum, transkripsie en klankuitvoer is ingesluit wanneer krediete gebruik word", "Geen gratis proeftydperk nie; kanselleer enige tyd"],
+      en: ["160 credits per month", "Enough for about 5 complete listening papers", "PDF, mark scheme, transcript and audio export are included when credits are used", "No free trial; cancel anytime"],
     },
   },
 ];
 
 const TOPUPS: TopUp[] = [
-  { priceId: "topup_small_once", name: { af: "Top-up — 1 vraestel", en: "Top-up — 1 paper" }, priceLabel: "R79", credits: 35 },
-  { priceId: "topup_large_once", name: { af: "Top-up — 2 vraestelle", en: "Top-up — 2 papers" }, priceLabel: "R149", credits: 65 },
+  { priceId: "topup_small_once", name: "Top-up — 1 paper", priceLabel: "R79", credits: 35 },
+  { priceId: "topup_large_once", name: "Top-up — 2 papers", priceLabel: "R149", credits: 65 },
 ];
 
 
@@ -102,9 +102,47 @@ function PricingContent() {
       <p className="mt-1 text-sm text-muted-foreground">{t("pricing.subtitle")}</p>
       <p className="mt-2 text-xs text-muted-foreground">
         {af
-          ? "Alle pryse is in Suid-Afrikaanse rand (ZAR) en sluit toepaslike belasting/BTW uit. Belasting word volgens jou land by die Paddle-betaalskerm bygevoeg. Geen gratis proeftydperk nie — intekeninge hernu maandeliks totdat jy kanselleer."
-          : "All prices are in South African rand (ZAR) and exclude applicable taxes/VAT. Tax is added at the Paddle checkout based on your location. No free trial — subscriptions renew monthly until you cancel."}
+          ? "Alle pryse is in Suid-Afrikaanse rand (ZAR) en sluit toepaslike belasting/BTW uit. Taxes may apply and will be calculated at checkout. Geen gratis proeftydperk nie — intekeninge hernu maandeliks totdat jy kanselleer."
+          : "All prices are in South African rand (ZAR) and exclude applicable taxes/VAT. Taxes may apply and will be calculated at checkout. No free trial — subscriptions renew monthly until you cancel."}
       </p>
+
+      <div className="paper mt-6 overflow-hidden rounded-lg">
+        <div className="border-b border-border px-4 py-3">
+          <h2 className="font-display text-lg font-semibold">
+            {af ? "Publieke pryslys" : "Public pricing"}
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {af
+              ? "Hierdie produkname en pryse stem ooreen met wat by checkout gewys word."
+              : "These product names and prices match what is shown at checkout."}
+          </p>
+        </div>
+        <div className="divide-y divide-border text-sm">
+          {[...TIERS, ...TOPUPS].map((item) => {
+            const monthly = "id" in item;
+            return (
+              <div key={item.priceId} className="grid gap-2 px-4 py-3 sm:grid-cols-[1.4fr_0.8fr_1.6fr] sm:items-center">
+                <div className="font-medium">{item.name}</div>
+                <div className="font-display text-lg">
+                  {item.priceLabel}
+                  <span className="font-sans text-xs text-muted-foreground">
+                    {monthly ? (af ? " / maand" : " / month") : af ? " eenmalig" : " one-off"}
+                  </span>
+                </div>
+                <div className="text-muted-foreground">
+                  {monthly
+                    ? af
+                      ? `${item.credits} krediete per maand; ongeveer ${item.papers} volledige luistervraestelle.`
+                      : `${item.credits} credits per month; about ${item.papers} complete listening papers.`
+                    : af
+                      ? `${item.credits} top-up krediete; verval nie.`
+                      : `${item.credits} top-up credits; never expires.`}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
 
       {!user && (
@@ -125,7 +163,7 @@ function PricingContent() {
           return (
             <div key={tier.id} className="paper rounded-lg p-6">
               <div className="flex items-baseline justify-between">
-                <div className="font-display text-lg font-semibold">{tier.name[locale]}</div>
+                <div className="font-display text-lg font-semibold">{tier.name}</div>
                 {isCurrent && (
                   <span className="rounded-full bg-accent/20 px-2 py-0.5 text-[10px] uppercase tracking-wider text-accent-foreground">
                     {af ? "Huidige plan" : "Current plan"}
@@ -160,7 +198,7 @@ function PricingContent() {
                   ? af ? "Aktief" : "Active"
                   : isActive
                     ? af ? "Verander op Rekening" : "Switch on Account"
-                    : af ? "Teken in op " + tier.name.af : "Subscribe to " + tier.name.en}
+                    : af ? "Teken in op " + tier.name : "Subscribe to " + tier.name}
               </button>
             </div>
           );
@@ -186,13 +224,13 @@ function PricingContent() {
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {af
-          ? "Ekstra krediete wat nooit verval nie."
-          : "Extra credits that never expire."}
+          ? "Ekstra krediete wat nooit verval nie. Produkname en pryse is dieselfde by checkout."
+          : "Extra credits that never expire. Product names and prices are the same at checkout."}
       </p>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {TOPUPS.map((tp) => (
           <div key={tp.priceId} className="paper rounded-lg p-6">
-            <div className="font-display text-lg font-semibold">{tp.name[locale]}</div>
+            <div className="font-display text-lg font-semibold">{tp.name}</div>
             <div className="mt-2 flex items-baseline gap-1">
               <span className="font-display text-2xl">{tp.priceLabel}</span>
               <span className="ml-1 text-xs text-muted-foreground">{af ? "eenmalig · excl. BTW" : "one-off · excl. tax"}</span>
