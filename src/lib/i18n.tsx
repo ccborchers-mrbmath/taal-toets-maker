@@ -6,7 +6,7 @@ type Dict = Record<string, string>;
 
 const af: Dict = {
   "app.name": "Luister Lab",
-  "app.tagline": "IGCSE Afrikaans 0548 Vraestelgenereerder",
+  "app.tagline": "Afrikaans Tweede Taal Luistervraestelgenereerder",
   "nav.library": "Biblioteek",
   "nav.shop": "Winkel",
   "nav.voices": "Stemme",
@@ -20,7 +20,7 @@ const af: Dict = {
   "credits.label": "krediete",
   "credits.buy": "Koop krediete",
   "auth.title": "Teken in by Luister Lab",
-  "auth.subtitle": "Genereer Cambridge IGCSE Afrikaans Tweede Taal (0548) luistervraestelle.",
+  "auth.subtitle": "Genereer Afrikaans as 'n Tweede Taal luister-oefenvraestelle.",
   "auth.email": "E-pos",
   "auth.password": "Wagwoord",
   "auth.signin": "Teken in",
@@ -30,7 +30,7 @@ const af: Dict = {
   "auth.toggle.tosignin": "Het reeds 'n rekening? Teken in",
   "auth.error.title": "Aanmelding misluk",
   "dashboard.title": "Jou vraestelle",
-  "dashboard.subtitle": "Cambridge IGCSE 0548/02 — Vraestel 2 Luister.",
+  "dashboard.subtitle": "Afrikaans Tweede Taal — Luistervraestelle.",
   "dashboard.empty.title": "Nog geen vraestelle nie",
   "dashboard.empty.body": "Skep jou eerste oefenvraestel — al die afdelings, vrae en memorandum word outomaties gegenereer.",
   "dashboard.new": "Genereer nuwe vraestel",
@@ -71,12 +71,12 @@ const af: Dict = {
   "common.loading": "Laai…",
   "common.error": "Iets het verkeerd geloop",
   "common.retry": "Probeer weer",
-  "footer.tagline": "Luister Lab · Nie geaffilieer met Cambridge Assessment International Education nie.",
+  "footer.tagline": "Luister Lab · Onafhanklik. Nie geaffilieer met enige eksamenraad of kurrikulum-liggaam nie.",
 };
 
 const en: Dict = {
   "app.name": "Listening Lab",
-  "app.tagline": "IGCSE Afrikaans 0548 Paper Generator",
+  "app.tagline": "Afrikaans Second Language Listening Paper Generator",
   "nav.library": "Library",
   "nav.shop": "Shop",
   "nav.voices": "Voices",
@@ -90,7 +90,7 @@ const en: Dict = {
   "credits.label": "credits",
   "credits.buy": "Buy credits",
   "auth.title": "Sign in to Listening Lab",
-  "auth.subtitle": "Generate Cambridge IGCSE Afrikaans as a Second Language (0548) listening papers.",
+  "auth.subtitle": "Generate Afrikaans as a Second Language listening practice papers.",
   "auth.email": "Email",
   "auth.password": "Password",
   "auth.signin": "Sign in",
@@ -100,7 +100,7 @@ const en: Dict = {
   "auth.toggle.tosignin": "Have an account? Sign in",
   "auth.error.title": "Sign-in failed",
   "dashboard.title": "Your papers",
-  "dashboard.subtitle": "Cambridge IGCSE 0548/02 — Paper 2 Listening.",
+  "dashboard.subtitle": "Afrikaans Second Language — Listening papers.",
   "dashboard.empty.title": "No papers yet",
   "dashboard.empty.body": "Create your first practice paper — all exercises, questions and mark scheme are generated automatically.",
   "dashboard.new": "Generate new paper",
@@ -141,7 +141,7 @@ const en: Dict = {
   "common.loading": "Loading…",
   "common.error": "Something went wrong",
   "common.retry": "Try again",
-  "footer.tagline": "Listening Lab · Not affiliated with Cambridge Assessment International Education.",
+  "footer.tagline": "Listening Lab · Independent. Not affiliated with any examination board or curriculum body.",
 };
 
 const dictionaries: Record<Locale, Dict> = { af, en };

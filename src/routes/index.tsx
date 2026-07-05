@@ -9,11 +9,11 @@ import { PublicFooter } from "@/components/PublicFooter";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Luister Lab — IGCSE Afrikaans 0548 Luistervraestelgenereerder" },
+      { title: "Luister Lab — Afrikaans Tweede Taal Luistervraestelgenereerder" },
       {
         name: "description",
         content:
-          "Skep Cambridge IGCSE Afrikaans as 'n Tweede Taal (0548) Vraestel 2 luister oefenvraestelle met natuurlike stemme, PDF's en klankgrepe.",
+          "Skep pasgemaakte Afrikaans as 'n Tweede Taal luister-oefenvraestelle met natuurlike stemme, PDF's en klankgrepe.",
       },
     ],
   }),
@@ -38,7 +38,7 @@ function LandingPage() {
             </div>
             <div className="leading-tight">
               <div className="font-display text-lg font-semibold">Luister Lab</div>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">IGCSE 0548</div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Afrikaans TT · Luister</div>
             </div>
           </Link>
           <nav className="hidden items-center gap-6 text-sm text-muted-foreground sm:flex">
@@ -67,10 +67,10 @@ function LandingPage() {
               Vir Afrikaans as 'n Tweede Taal-opvoeders
             </div>
             <h1 className="mt-5 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-              Genereer Cambridge IGCSE Afrikaans 0548 Vraestel 2 luister-oefenvraestelle in minute.
+              Genereer Afrikaans as 'n Tweede Taal luister-oefenvraestelle in minute.
             </h1>
             <p className="mt-5 text-lg text-muted-foreground">
-              Luister Lab skep volledige Vraestel 2 oefenmateriaal — teks, natuurlike stem-opnames, gedrukte
+              Luister Lab skep volledige oefenmateriaal — teks, natuurlike stem-opnames, gedrukte
               vraestelle en memoranda — sodat jy meer tyd kan spandeer aan onderrig, nie voorbereiding nie.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
