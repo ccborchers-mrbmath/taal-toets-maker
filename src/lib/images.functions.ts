@@ -21,7 +21,17 @@ async function generatePngFromPrompt(prompt: string): Promise<Uint8Array> {
       messages: [
         {
           role: "user",
-          content: `${prompt}. Black-and-white line art illustration in the style of Cambridge IGCSE exam papers: clean black ink outlines on a plain white background, light pencil-style shading only, simple flat composition, single clear subject framed in a square panel, no colour, no photographic detail, no text, no captions, no letters, no watermarks, no logos, no borders.`,
+          content: `STRICT MONOCHROME LINE ART. Subject: ${prompt}.
+
+Style requirements — follow exactly:
+- Pure black ink line drawing on a plain white background, in the style of a Cambridge IGCSE / Pearson exam paper illustration.
+- Absolutely NO colour of any kind. Every pixel must be black, white, or a neutral grey. No blue, red, green, yellow, brown, skin tone, wood tone, sky tone, or any tint whatsoever. Treat this as a grayscale-only output.
+- Only thin uniform black outlines plus, if needed, light diagonal or cross-hatch pencil shading. No solid fills of colour. No painted or coloured surfaces.
+- Plain empty white background. No desk, no books, no room, no scenery, no shadows on surfaces, no gradients, no photographic elements, no 3D rendering.
+- One clear simple subject, centred, framed in a square panel.
+- No text, letters, numbers, captions, labels, watermarks, logos, borders or frames.
+
+If in doubt, output less detail and less colour, not more. Coloured output is a failure.`,
         },
       ],
       modalities: ["image", "text"],
