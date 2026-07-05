@@ -13,6 +13,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Checkbox } from "@/components/ui/checkbox";
 import { useT, type Locale } from "@/lib/i18n";
 import { useAuth } from "@/hooks/useAuth";
+import { useNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
+import { isInsufficientCreditsError } from "@/lib/credits";
 import { supabase } from "@/integrations/supabase/client";
 import {
   EX_GUIDE,
@@ -81,6 +83,7 @@ function buildBriefMarkdown(opts: {
 function NewAssessmentForm() {
   const { t, locale } = useT();
   const { user } = useAuth();
+  const { showNoCreditsDialog } = useNoCreditsDialog();
   const navigate = useNavigate();
 
   const [title, setTitle] = useState("");
@@ -167,7 +170,11 @@ function NewAssessmentForm() {
       // the still-mounted context and isn't torn down by the route change.
       generatePaper({ data: { assessment_id: created.id } }).catch((err) => {
         console.error("Generation failed", err);
-        toast.error(t("common.error"), { description: err instanceof Error ? err.message : String(err) });
+        if (isInsufficientCreditsError(err)) {
+          showNoCreditsDialog();
+        } else {
+          toast.error(t("common.error"), { description: err instanceof Error ? err.message : String(err) });
+        }
       });
 
       navigate({ to: "/assessments/$id", params: { id: created.id }, search: { kicked: 1 } });

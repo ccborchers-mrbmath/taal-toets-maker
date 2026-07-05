@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useT } from "@/lib/i18n";
+import { isInsufficientCreditsError } from "@/lib/credits";
+import { useNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import {
   generateStaleSegments,
   listExerciseSegments,
@@ -210,6 +212,7 @@ type SegRow = NonNullable<Awaited<ReturnType<typeof listExerciseSegments>>>["row
 function SegmentRow({ exerciseId, row }: { exerciseId: string; row: SegRow }) {
   const qc = useQueryClient();
   const { t } = useT();
+  const { showNoCreditsDialog } = useNoCreditsDialog();
   const [text, setText] = useState(row.transcript);
   const [savingText, setSavingText] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -246,7 +249,11 @@ function SegmentRow({ exerciseId, row }: { exerciseId: string; row: SegRow }) {
       toast.success(t("Snit hergegenereer", "Segment regenerated"));
       await invalidate();
     } catch (err) {
-      toast.error(t("Regenerering misluk", "Regeneration failed"), { description: err instanceof Error ? err.message : String(err) });
+      if (isInsufficientCreditsError(err)) {
+        showNoCreditsDialog();
+      } else {
+        toast.error(t("Regenerering misluk", "Regeneration failed"), { description: err instanceof Error ? err.message : String(err) });
+      }
     } finally {
       setRegenerating(false);
     }
