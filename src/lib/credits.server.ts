@@ -8,15 +8,6 @@ export type CreditOp =
   | "audio_exercise"
   | "segment_regenerate";
 
-const UNLIMITED_EMAILS = new Set([
-  "burger.tammy@gmail.com",
-  "ccborchers@gmail.com",
-]);
-
-export function isUnlimitedEmail(email: string | null | undefined): boolean {
-  if (!email) return false;
-  return UNLIMITED_EMAILS.has(email.toLowerCase());
-}
 
 export async function getCreditCost(op: CreditOp): Promise<number> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
