@@ -140,7 +140,7 @@ function NewAssessmentForm() {
           brief: briefMd || null,
           part_type: partType,
           level,
-          paper_code: partType === "full_paper" ? "0548/02" : `0548/02 — ${activePart.shortLabel.af}`,
+          paper_code: partType === "full_paper" ? "Afrikaans TT · Luister" : `Afrikaans TT · Luister — ${activePart.shortLabel.af}`,
           status: "draft",
         })
         .select("id")

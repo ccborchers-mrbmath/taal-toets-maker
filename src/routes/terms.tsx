@@ -22,10 +22,11 @@ function TermsPage() {
       </Section>
 
       <Section title="2. Die diens">
-        Luister Lab is 'n hulpmiddel om Cambridge IGCSE Afrikaans as 'n Tweede Taal (0548) Vraestel 2
-        luister-oefenvraestelle te genereer. Die diens is <em>nie</em> geaffilieer met of ondersteun
-        deur Cambridge Assessment International Education nie. Gegenereerde inhoud is bedoel vir
-        oefendoeleindes en moet deur 'n opvoeder hersien word voor gebruik.
+        Luister Lab is 'n onafhanklike hulpmiddel om Afrikaans as 'n Tweede Taal
+        luister-oefenvraestelle te genereer. Die diens is <em>nie</em> 'n eksamenraad, kurrikulum-
+        of assesseringsverskaffer nie, en is nie geaffilieer met, ondersteun deur, of endosseer
+        deur enige eksamenraad, universiteit of amptelike kurrikulum-liggaam nie. Gegenereerde
+        inhoud is generiese oefenmateriaal en moet deur 'n opvoeder hersien word voor gebruik.
       </Section>
 
       <Section title="3. Rekeninge">
@@ -47,9 +48,9 @@ function TermsPage() {
 
       <Section title="5. KI-uitsette en akkuraatheid">
         Vraestelle word deur KI-modelle gegenereer. Uitsette kan onakkuraat, onvolledig of
-        onvanpas wees en is nie 'n plaasvervanger vir professionele onderrig of Cambridge se
-        amptelike materiaal nie. Jy is verantwoordelik vir jou aanwysings, om uitsette te hersien,
-        en om te bevestig dat jy die reg het om enige insetinhoud te gebruik.
+        onvanpas wees en is nie 'n plaasvervanger vir professionele onderrig of amptelike
+        eksamen- of kurrikulum-materiaal nie. Jy is verantwoordelik vir jou aanwysings, om
+        uitsette te hersien, en om te bevestig dat jy die reg het om enige insetinhoud te gebruik.
       </Section>
 
       <Section title="6. Intellektuele eiendom">

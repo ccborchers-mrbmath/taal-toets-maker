@@ -16,7 +16,7 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Teken in — Luister Lab" },
-      { name: "description", content: "Teken in om IGCSE Afrikaans 0548 luistervraestelle te genereer." },
+      { name: "description", content: "Teken in om Afrikaans as 'n Tweede Taal luistervraestelle te genereer." },
     ],
   }),
   component: AuthPage,
