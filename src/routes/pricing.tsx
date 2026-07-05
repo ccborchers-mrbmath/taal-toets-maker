@@ -195,7 +195,9 @@ function PricingContent() {
             <div className="font-display text-lg font-semibold">{tp.name[locale]}</div>
             <div className="mt-2 flex items-baseline gap-1">
               <span className="font-display text-2xl">{tp.priceLabel}</span>
+              <span className="ml-1 text-xs text-muted-foreground">{af ? "eenmalig · excl. BTW" : "one-off · excl. tax"}</span>
             </div>
+
             <div className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
               {tp.credits} {t("credits.label")}
             </div>
