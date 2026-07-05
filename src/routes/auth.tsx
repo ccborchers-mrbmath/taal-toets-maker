@@ -78,7 +78,10 @@ function AuthPage() {
           </div>
           <span className="font-display text-lg font-semibold">{t("app.name")}</span>
         </Link>
-        <LanguageToggle />
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <Link to="/pricing" className="hidden hover:text-foreground sm:inline">Pryse</Link>
+          <LanguageToggle />
+        </div>
       </header>
 
       <main className="flex flex-1 items-center justify-center px-4 py-12">
