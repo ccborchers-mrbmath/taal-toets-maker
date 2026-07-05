@@ -25,12 +25,18 @@ function computeActive(sub: SubscriptionRow | null): boolean {
   if (!sub) return false;
   const now = Date.now();
   const end = sub.current_period_end ? Date.parse(sub.current_period_end) : null;
-  if (["active", "trialing", "past_due"].includes(sub.status)) {
+  // past_due is NOT active: the webhook revokes credits on past_due.
+  if (["active", "trialing"].includes(sub.status)) {
     return end === null || end > now;
   }
   if (sub.status === "canceled") return end !== null && end > now;
   return false;
 }
+
+export function isPastDue(sub: SubscriptionRow | null): boolean {
+  return !!sub && sub.status === "past_due";
+}
+
 
 export function useSubscription(): SubscriptionState {
   const { user } = useAuth();
