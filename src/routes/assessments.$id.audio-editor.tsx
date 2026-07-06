@@ -110,6 +110,7 @@ function EditorContent() {
 function ExerciseEditor({ exercise }: { exercise: Exercise }) {
   const qc = useQueryClient();
   const { t } = useT();
+  const { showNoCreditsDialog } = useNoCreditsDialog();
   const [busyRestitch, setBusyRestitch] = useState(false);
   const [busyStale, setBusyStale] = useState(false);
 
@@ -133,7 +134,11 @@ function ExerciseEditor({ exercise }: { exercise: Exercise }) {
       );
       await qc.invalidateQueries({ queryKey: ["audio-editor-segments", exercise.id] });
     } catch (err) {
-      toast.error(t("Sintese misluk", "Synthesis failed"), { description: err instanceof Error ? err.message : String(err) });
+      if (isInsufficientCreditsError(err)) {
+        showNoCreditsDialog();
+      } else {
+        toast.error(t("Sintese misluk", "Synthesis failed"), { description: err instanceof Error ? err.message : String(err) });
+      }
     } finally {
       setBusyStale(false);
     }
@@ -146,7 +151,11 @@ function ExerciseEditor({ exercise }: { exercise: Exercise }) {
       toast.success(t("Oefening opnuut aanmekaar gestik", "Exercise re-stitched"));
       await qc.invalidateQueries({ queryKey: ["assessment-full"] });
     } catch (err) {
-      toast.error(t("Aanmekaarstik misluk", "Re-stitch failed"), { description: err instanceof Error ? err.message : String(err) });
+      if (isInsufficientCreditsError(err)) {
+        showNoCreditsDialog();
+      } else {
+        toast.error(t("Aanmekaarstik misluk", "Re-stitch failed"), { description: err instanceof Error ? err.message : String(err) });
+      }
     } finally {
       setBusyRestitch(false);
     }

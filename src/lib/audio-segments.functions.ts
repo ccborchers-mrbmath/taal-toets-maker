@@ -219,25 +219,58 @@ export const generateStaleSegments = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const userEmail = ((context as { claims?: { email?: string } }).claims?.email ?? "").toLowerCase();
     const { ex, script, resolveLabel } = await loadExerciseContext(
       supabase,
       userId,
       data.exercise_id,
     );
-    let synthesized = 0;
-    for (const row of script) {
-      if (row.audio_path && !row.audio_stale) continue;
-      const voice = resolveLabel(row.speaker_label);
-      // eslint-disable-next-line no-await-in-loop
-      await synthesizeAndPersistRow({
-        row,
-        voice,
-        assessmentId: ex.assessment_id,
-        exerciseId: ex.id,
-      });
-      synthesized += 1;
+    const toSynthesize = script.filter((row) => !row.audio_path || row.audio_stale);
+    if (toSynthesize.length === 0) {
+      return { ok: true, synthesized: 0 };
     }
-    return { ok: true, synthesized };
+
+    // Bulk-fill is the same underlying operation as a single "Regenereer"
+    // click, just looped — charge 1 segment_regenerate credit per row so it
+    // can't be used to synthesize audio for free.
+    const { spendCredits, refundCredits } = await import("@/lib/credits.server");
+    const spend = await spendCredits({
+      userId,
+      userEmail,
+      op: "segment_regenerate",
+      amount: toSynthesize.length,
+      reason: "generate_stale_segments",
+      metadata: { exercise_id: data.exercise_id, rows: toSynthesize.length },
+    });
+
+    let synthesized = 0;
+    try {
+      for (const row of toSynthesize) {
+        const voice = resolveLabel(row.speaker_label);
+        // eslint-disable-next-line no-await-in-loop
+        await synthesizeAndPersistRow({
+          row,
+          voice,
+          assessmentId: ex.assessment_id,
+          exerciseId: ex.id,
+        });
+        synthesized += 1;
+      }
+      return { ok: true, synthesized };
+    } catch (err) {
+      // Only refund the rows that were charged for but never actually
+      // synthesized — already-completed rows in this batch keep their charge.
+      const unspent = spend.spent - synthesized;
+      if (unspent > 0) {
+        await refundCredits({
+          userId,
+          amount: unspent,
+          reason: "refund_generate_stale_segments",
+          metadata: { exercise_id: data.exercise_id },
+        });
+      }
+      throw err;
+    }
   });
 
 export const restitchExercise = createServerFn({ method: "POST" })
@@ -250,19 +283,55 @@ export const restitchExercise = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const userEmail = ((context as { claims?: { email?: string } }).claims?.email ?? "").toLowerCase();
     const { ex, script, questions, narrator, resolveLabel } = await loadExerciseContext(
       supabase,
       userId,
       data.exercise_id,
     );
-    const segs = planExerciseSegments(ex, script, questions, resolveLabel, narrator);
-    const rowById = new Map(script.map((r) => [r.id, r] as const));
-    const stitched = await assembleFromPlan(segs, {
-      assessmentId: ex.assessment_id,
-      exerciseId: ex.id,
-      rowById,
-      allowSynthesis: data.allow_synthesis ?? false,
-    });
-    const audioUrl = await uploadExerciseAudio(ex.assessment_id, ex.id, stitched);
-    return { audio_url: audioUrl, bytes: stitched.length };
+    const allowSynthesis = data.allow_synthesis ?? false;
+    // assembleFromPlan re-synthesizes any stale/missing row it encounters
+    // when allowSynthesis is set — charge for exactly those rows up front,
+    // same price as a single "Regenereer" click. generateExerciseAudio (the
+    // first-ever stitch) already charges a flat audio_exercise price and
+    // calls this same helper, so charging must happen here, per-caller, not
+    // inside the shared assembleFromPlan/synthesizeAndPersistRow functions.
+    const toSynthesize = allowSynthesis ? script.filter((row) => !row.audio_path || row.audio_stale) : [];
+
+    let spend = { spent: 0 };
+    if (toSynthesize.length > 0) {
+      const { spendCredits } = await import("@/lib/credits.server");
+      spend = await spendCredits({
+        userId,
+        userEmail,
+        op: "segment_regenerate",
+        amount: toSynthesize.length,
+        reason: "restitch_exercise",
+        metadata: { exercise_id: data.exercise_id, rows: toSynthesize.length },
+      });
+    }
+
+    try {
+      const segs = planExerciseSegments(ex, script, questions, resolveLabel, narrator);
+      const rowById = new Map(script.map((r) => [r.id, r] as const));
+      const stitched = await assembleFromPlan(segs, {
+        assessmentId: ex.assessment_id,
+        exerciseId: ex.id,
+        rowById,
+        allowSynthesis,
+      });
+      const audioUrl = await uploadExerciseAudio(ex.assessment_id, ex.id, stitched);
+      return { audio_url: audioUrl, bytes: stitched.length };
+    } catch (err) {
+      if (spend.spent > 0) {
+        const { refundCredits } = await import("@/lib/credits.server");
+        await refundCredits({
+          userId,
+          amount: spend.spent,
+          reason: "refund_restitch_exercise",
+          metadata: { exercise_id: data.exercise_id },
+        });
+      }
+      throw err;
+    }
   });
