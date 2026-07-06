@@ -43,17 +43,17 @@ const TIERS: Tier[] = [
     priceId: "basic_monthly",
     name: "Luister Lab — Basic",
     priceLabel: "R199",
-    credits: 45,
+    credits: 70,
     papers: 1,
     perks: {
       af: [
-        "45 krediete per maand",
+        "70 krediete per maand",
         "Genoeg vir een volledige luistervraestel plus ’n paar regstellings en beeld-hergenerasies",
         "PDF, memorandum, transkripsie en klankuitvoer is ingesluit wanneer krediete gebruik word",
         "Geen gratis proeftydperk nie; kanselleer enige tyd",
       ],
       en: [
-        "45 credits per month",
+        "70 credits per month",
         "Enough for one complete listening paper plus a few corrections and image regenerations",
         "PDF, mark scheme, transcript and audio export are included when credits are used",
         "No free trial; cancel anytime",
@@ -65,17 +65,17 @@ const TIERS: Tier[] = [
     priceId: "pro_monthly",
     name: "Luister Lab — Pro",
     priceLabel: "R449",
-    credits: 140,
+    credits: 160,
     papers: 4,
     perks: {
       af: [
-        "140 krediete per maand",
+        "160 krediete per maand",
         "Genoeg vir ongeveer 4 volledige luistervraestelle",
         "PDF, memorandum, transkripsie en klankuitvoer is ingesluit wanneer krediete gebruik word",
         "Geen gratis proeftydperk nie; kanselleer enige tyd",
       ],
       en: [
-        "140 credits per month",
+        "160 credits per month",
         "Enough for about 4 complete listening papers",
         "PDF, mark scheme, transcript and audio export are included when credits are used",
         "No free trial; cancel anytime",
