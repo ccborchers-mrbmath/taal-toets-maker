@@ -22,8 +22,8 @@ function AccountPage() {
 }
 
 const PLAN_LABEL: Record<string, { af: string; en: string; credits: number }> = {
-  basic_monthly: { af: "Basies (R149/m)", en: "Basic (R149/mo)", credits: 70 },
-  pro_monthly: { af: "Pro (R329/m)", en: "Pro (R329/mo)", credits: 160 },
+  basic_monthly: { af: "Basies (R199/m)", en: "Basic (R199/mo)", credits: 70 },
+  pro_monthly: { af: "Pro (R449/m)", en: "Pro (R449/mo)", credits: 160 },
 };
 const ALL_PLAN_IDS = ["basic_monthly", "pro_monthly"] as const;
 
