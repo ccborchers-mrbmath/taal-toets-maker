@@ -121,6 +121,7 @@ type ScriptRow = {
   audio_path: string | null;
   audio_generated_at: string | null;
   audio_stale: boolean;
+  audio_transcript: string | null;
   previous_transcript: string | null;
   previous_audio_path: string | null;
   previous_generated_at: string | null;
@@ -276,7 +277,7 @@ export async function loadExerciseContext(
   const { data: ex, error: exErr } = await supabase
     .from("exercises")
     .select(
-      "id,number,kind,rubric,intro,statements,assessment_id,voice_map,listening_scripts(id,sequence,speaker_label,transcript,item_index,audio_path,audio_generated_at,audio_stale,previous_transcript,previous_audio_path,previous_generated_at),questions(number,stem,speaker_index)",
+      "id,number,kind,rubric,intro,statements,assessment_id,voice_map,listening_scripts(id,sequence,speaker_label,transcript,item_index,audio_path,audio_generated_at,audio_stale,audio_transcript,previous_transcript,previous_audio_path,previous_generated_at),questions(number,stem,speaker_index)",
     )
     .eq("id", exerciseId)
     .maybeSingle();
@@ -345,7 +346,10 @@ export async function synthesizeAndPersistRow(args: {
       await supabaseAdmin
         .from("listening_scripts")
         .update({
-          previous_transcript: row.transcript,
+          // row.transcript may already be a pending edit that hasn't been
+          // synthesized yet — audio_transcript is the transcript that
+          // actually matches the audio we're archiving here.
+          previous_transcript: row.audio_transcript ?? row.transcript,
           previous_audio_path: prevPath,
           previous_generated_at: row.audio_generated_at,
         })
@@ -366,6 +370,7 @@ export async function synthesizeAndPersistRow(args: {
       audio_path: path,
       audio_generated_at: new Date().toISOString(),
       audio_stale: false,
+      audio_transcript: row.transcript,
     })
     .eq("id", row.id);
   if (updErr) throw new Error(updErr.message);
