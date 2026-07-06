@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Loader2, RotateCcw, Sparkles, Undo2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -214,6 +214,10 @@ function SegmentRow({ exerciseId, row }: { exerciseId: string; row: SegRow }) {
   const { t } = useT();
   const { showNoCreditsDialog } = useNoCreditsDialog();
   const [text, setText] = useState(row.transcript);
+  // Resync when the server's transcript changes underneath us (e.g. after a
+  // revert restores the original wording) — otherwise the box keeps showing
+  // whatever was last typed here, even though the data is already fixed.
+  useEffect(() => setText(row.transcript), [row.transcript]);
   const [savingText, setSavingText] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [reverting, setReverting] = useState(false);

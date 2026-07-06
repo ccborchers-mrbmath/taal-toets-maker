@@ -123,7 +123,7 @@ export const regenerateSegment = createServerFn({ method: "POST" })
 
     const { data: row, error } = await supabase
       .from("listening_scripts")
-      .select("id,exercise_id,transcript,speaker_label,audio_path,audio_generated_at,audio_stale,previous_transcript,previous_audio_path,previous_generated_at,sequence,item_index")
+      .select("id,exercise_id,transcript,speaker_label,audio_path,audio_generated_at,audio_stale,audio_transcript,previous_transcript,previous_audio_path,previous_generated_at,sequence,item_index")
       .eq("id", data.script_row_id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -152,6 +152,7 @@ export const regenerateSegment = createServerFn({ method: "POST" })
           audio_path: row.audio_path,
           audio_generated_at: row.audio_generated_at,
           audio_stale: row.audio_stale,
+          audio_transcript: row.audio_transcript,
           previous_transcript: row.previous_transcript,
           previous_audio_path: row.previous_audio_path,
           previous_generated_at: row.previous_generated_at,
@@ -183,7 +184,7 @@ export const revertSegment = createServerFn({ method: "POST" })
     const { supabase } = context;
     const { data: row, error } = await supabase
       .from("listening_scripts")
-      .select("id,transcript,audio_path,audio_generated_at,previous_transcript,previous_audio_path,previous_generated_at")
+      .select("id,transcript,audio_path,audio_generated_at,audio_transcript,previous_transcript,previous_audio_path,previous_generated_at")
       .eq("id", data.script_row_id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -192,7 +193,8 @@ export const revertSegment = createServerFn({ method: "POST" })
       throw new Error("No previous take to revert to");
     }
 
-    // Swap current ↔ previous.
+    // Swap current ↔ previous. audio_transcript swaps alongside so the
+    // restored slot's caption stays correct if the teacher reverts again.
     const { error: updErr } = await supabase
       .from("listening_scripts")
       .update({
@@ -200,7 +202,8 @@ export const revertSegment = createServerFn({ method: "POST" })
         audio_path: row.previous_audio_path,
         audio_generated_at: row.previous_generated_at,
         audio_stale: false,
-        previous_transcript: row.transcript,
+        audio_transcript: row.previous_transcript,
+        previous_transcript: row.audio_transcript ?? row.transcript,
         previous_audio_path: row.audio_path,
         previous_generated_at: row.audio_generated_at,
       })

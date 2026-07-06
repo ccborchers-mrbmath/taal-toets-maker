@@ -282,6 +282,7 @@ export type Database = {
           audio_generated_at: string | null
           audio_path: string | null
           audio_stale: boolean
+          audio_transcript: string | null
           audio_url: string | null
           context: string | null
           duration_seconds: number | null
@@ -300,6 +301,7 @@ export type Database = {
           audio_generated_at?: string | null
           audio_path?: string | null
           audio_stale?: boolean
+          audio_transcript?: string | null
           audio_url?: string | null
           context?: string | null
           duration_seconds?: number | null
@@ -318,6 +320,7 @@ export type Database = {
           audio_generated_at?: string | null
           audio_path?: string | null
           audio_stale?: boolean
+          audio_transcript?: string | null
           audio_url?: string | null
           context?: string | null
           duration_seconds?: number | null
