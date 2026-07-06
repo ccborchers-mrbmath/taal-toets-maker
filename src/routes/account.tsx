@@ -36,13 +36,18 @@ function AccountContent() {
   const [switchingTo, setSwitchingTo] = useState<string | null>(null);
   const pastDue = isPastDue(subscription);
 
-  const openPortal = async () => {
+  const openPortal = async (intent: "update_payment" | "manage") => {
     setPortalLoading(true);
     try {
       const res = await createCustomerPortalSession();
-      const url = res.subscriptionUrls?.[0]?.cancelSubscription
-        ?? res.subscriptionUrls?.[0]?.updateSubscriptionPaymentMethod
-        ?? res.overviewUrl;
+      // Never default to the cancel-subscription deep link — a user fixing a
+      // failed payment or just reviewing their plan should land somewhere
+      // neutral, not one click away from accidentally cancelling. Paddle's
+      // portal has no generic "manage" URL, so overview is the safe landing
+      // spot; only the payment-method flow gets its own deep link.
+      const url = intent === "update_payment"
+        ? (res.subscriptionUrls?.[0]?.updateSubscriptionPaymentMethod ?? res.overviewUrl)
+        : res.overviewUrl;
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Portal error");
@@ -93,7 +98,7 @@ function AccountContent() {
             </p>
             <button
               type="button"
-              onClick={openPortal}
+              onClick={() => openPortal("update_payment")}
               disabled={portalLoading}
               className="inline-flex items-center gap-2 rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-50"
             >
@@ -190,7 +195,7 @@ function AccountContent() {
             <div className="flex flex-wrap gap-2 pt-2">
               <button
                 type="button"
-                onClick={openPortal}
+                onClick={() => openPortal("manage")}
                 disabled={portalLoading}
                 className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
               >
