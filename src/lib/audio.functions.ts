@@ -470,22 +470,44 @@ export const generateExerciseAudio = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const userEmail = ((context as { claims?: { email?: string } }).claims?.email ?? "").toLowerCase();
 
-    const { spendCredits, refundCredits } = await import("@/lib/credits.server");
-    const spend = await spendCredits({
+    const { ex, script, questions, narrator, resolveLabel } = await loadExerciseContext(
+      supabase as never,
       userId,
-      userEmail,
-      op: "audio_exercise",
-      reason: "generate_exercise_audio",
-      metadata: { exercise_id: data.exercise_id },
-    });
+      data.exercise_id,
+    );
+
+    // If the exercise already has cached segment audio, only the stale/missing
+    // rows need re-synthesis — charge per row (same price as a single
+    // "Regenereer" click) instead of the flat full-exercise price.
+    const hasCache = script.some((row) => row.audio_path && !row.audio_stale);
+    const toSynthesize = script.filter((row) => !row.audio_path || row.audio_stale);
+
+    const { spendCredits, refundCredits } = await import("@/lib/credits.server");
+    let spend = { spent: 0 };
+    let refundReason = "refund_generate_exercise_audio";
+    if (hasCache) {
+      refundReason = "refund_generate_exercise_audio_incremental";
+      if (toSynthesize.length > 0) {
+        spend = await spendCredits({
+          userId,
+          userEmail,
+          op: "segment_regenerate",
+          amount: toSynthesize.length,
+          reason: "generate_exercise_audio_incremental",
+          metadata: { exercise_id: data.exercise_id, rows: toSynthesize.length },
+        });
+      }
+    } else {
+      spend = await spendCredits({
+        userId,
+        userEmail,
+        op: "audio_exercise",
+        reason: "generate_exercise_audio",
+        metadata: { exercise_id: data.exercise_id },
+      });
+    }
 
     try {
-      const { ex, script, questions, narrator, resolveLabel } = await loadExerciseContext(
-        supabase as never,
-        userId,
-        data.exercise_id,
-      );
-
       const segs = planExerciseSegments(ex, script, questions, resolveLabel, narrator);
       const rowById = new Map(script.map((r) => [r.id, r] as const));
       const stitched = await assembleFromPlan(segs, {
@@ -506,7 +528,7 @@ export const generateExerciseAudio = createServerFn({ method: "POST" })
         await refundCredits({
           userId,
           amount: spend.spent,
-          reason: "refund_generate_exercise_audio",
+          reason: refundReason,
           metadata: { exercise_id: data.exercise_id },
         });
       }
