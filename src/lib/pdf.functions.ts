@@ -453,10 +453,108 @@ async function renderPaper(ctx: Ctx, p: FullPaper, supabaseAdmin: SupabaseAdminL
     drawText(ctx, ex.rubric, { size: 10, color: rgb(0.3, 0.3, 0.35) });
     gap(ctx, 6);
 
-    // Statements panel for Ex4
+    // Shared statements for matching exercises (Exercise 4).
     const statements = Array.isArray(ex.statements)
       ? (ex.statements as { letter: string; text: string }[])
       : null;
+    const sortedQs = [...ex.questions].sort((a, b) => a.number - b.number);
+    if (ex.kind === "matching" && statements?.length) {
+      gap(ctx, 4);
+
+      // Cambridge-style matching layout: show A-H once in bordered rows,
+      // followed by one answer line per speaker. The options stored against
+      // each question are intentionally not rendered here.
+      for (const s of statements) {
+        const letter = sanitize(s.letter);
+        const text = sanitize(s.text);
+        const textX = MARGIN + 34;
+        const lines = wrap(ctx.font, text, 10, CONTENT_W - 42);
+        const rowH = Math.max(24, lines.length * 12 + 10);
+        ensure(ctx, rowH + 3);
+        const rowTop = ctx.y;
+
+        ctx.page.drawRectangle({
+          x: MARGIN,
+          y: rowTop - rowH,
+          width: CONTENT_W,
+          height: rowH,
+          borderColor: rgb(0.2, 0.2, 0.22),
+          borderWidth: 0.7,
+        });
+        ctx.page.drawText(letter, {
+          x: MARGIN + 10,
+          y: rowTop - 15,
+          size: 10.5,
+          font: ctx.bold,
+        });
+        let textY = rowTop - 15;
+        for (const line of lines) {
+          ctx.page.drawText(line, { x: textX, y: textY, size: 10, font: ctx.font });
+          textY -= 12;
+        }
+        ctx.y -= rowH + 3;
+      }
+      gap(ctx, 13);
+
+      const answerBox = 18;
+      const answerRowH = 36;
+      for (let qi = 0; qi < sortedQs.length; qi++) {
+        const q = sortedQs[qi];
+        ensure(ctx, answerRowH);
+        const speakerNumber = q.speaker_index ?? qi + 1;
+        const baseline = ctx.y - 13;
+
+        ctx.page.drawText(`Vraag ${q.number}`, {
+          x: MARGIN,
+          y: baseline,
+          size: 10.5,
+          font: ctx.bold,
+        });
+        ctx.page.drawText(`Spreker ${speakerNumber}`, {
+          x: MARGIN + 82,
+          y: baseline,
+          size: 10.5,
+          font: ctx.font,
+        });
+        const boxX = PAGE_W - MARGIN - 58;
+        ctx.page.drawLine({
+          start: { x: MARGIN + 154, y: baseline - 2 },
+          end: { x: boxX - 10, y: baseline - 2 },
+          thickness: 0.6,
+          dashArray: [1, 2],
+          color: rgb(0.25, 0.25, 0.28),
+        });
+        ctx.page.drawRectangle({
+          x: boxX,
+          y: baseline - 5,
+          width: answerBox,
+          height: answerBox,
+          borderColor: rgb(0.15, 0.15, 0.2),
+          borderWidth: 0.9,
+        });
+        ctx.page.drawText("[1]", {
+          x: PAGE_W - MARGIN - 22,
+          y: baseline,
+          size: 9.5,
+          font: ctx.font,
+          color: rgb(0.3, 0.3, 0.35),
+        });
+        ctx.y -= answerRowH;
+      }
+
+      const total = sortedQs.length;
+      const totalLabel = `[Totaal: ${total}]`;
+      ctx.page.drawText(totalLabel, {
+        x: PAGE_W - MARGIN - ctx.bold.widthOfTextAtSize(totalLabel, 9.5),
+        y: ctx.y - 2,
+        size: 9.5,
+        font: ctx.bold,
+      });
+      ctx.y -= 14;
+      rule(ctx);
+      continue;
+    }
+
     if (statements && statements.length) {
       gap(ctx, 4);
       for (const s of statements) {
@@ -465,7 +563,6 @@ async function renderPaper(ctx: Ctx, p: FullPaper, supabaseAdmin: SupabaseAdminL
       gap(ctx, 6);
     }
 
-    const sortedQs = [...ex.questions].sort((a, b) => a.number - b.number);
     for (let qi = 0; qi < sortedQs.length; qi++) {
       const q = sortedQs[qi];
       const opts = [...q.question_options].sort((a, b) => a.letter.localeCompare(b.letter));
