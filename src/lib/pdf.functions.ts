@@ -5,7 +5,18 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from "pdf-lib";
+import {
+  PDFDocument,
+  StandardFonts,
+  rgb,
+  PDFFont,
+  PDFPage,
+  clip,
+  endPath,
+  popGraphicsState,
+  pushGraphicsState,
+  rectangle,
+} from "pdf-lib";
 
 type PdfKind = "paper" | "mark_scheme" | "transcript";
 
@@ -509,15 +520,29 @@ async function renderPaper(ctx: Ctx, p: FullPaper, supabaseAdmin: SupabaseAdminL
           if (png) {
             try {
               const embedded = await ctx.doc.embedPng(png);
-              const scale = Math.min((colW - 8) / embedded.width, (imgH - 8) / embedded.height);
+              // Generated artwork includes generous white canvas margins. Enlarge the
+              // original image in the PDF (without resampling it) and clip only the
+              // excess whitespace so the subject fills more of the option box.
+              const inset = 2;
+              const zoom = 1.32;
+              const innerW = colW - inset * 2;
+              const innerH = imgH - inset * 2;
+              const scale = Math.min(innerW / embedded.width, innerH / embedded.height) * zoom;
               const w = embedded.width * scale;
               const h = embedded.height * scale;
+              ctx.page.pushOperators(
+                pushGraphicsState(),
+                rectangle(x + inset, rowTop - imgH + inset, innerW, innerH),
+                clip(),
+                endPath(),
+              );
               ctx.page.drawImage(embedded, {
                 x: x + (colW - w) / 2,
                 y: rowTop - imgH + (imgH - h) / 2,
                 width: w,
                 height: h,
               });
+              ctx.page.pushOperators(popGraphicsState());
             } catch {
               /* fall through to placeholder text */
             }
