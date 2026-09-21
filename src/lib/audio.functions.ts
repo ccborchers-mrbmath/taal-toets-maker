@@ -153,7 +153,7 @@ export function makeVoiceResolver(
 }
 
 export function buildNarrator(): ResolvedVoice {
-  return { voiceId: narratorVoiceId(), settings: {}, name: "Verteller", castId: null };
+  return { voiceId: narratorVoiceId(), settings: { speed: 0.95 }, name: "Verteller", castId: null };
 }
 
 // ------------- Segment plan (row-aware) -------------
