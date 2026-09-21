@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, Check, Download, FileText, Headphones, ImageIcon, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { ArrowLeft, Check, Download, FileText, Headphones, ImageIcon, Loader2, Minus, Move, Plus, RefreshCw, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -66,7 +66,10 @@ type FullPaper = {
     questions: {
       id: string; number: number; stem: string; correct_letter: string;
       speaker_index: number | null;
-      question_options: { id: string; letter: string; text: string | null; image_prompt: string | null; image_url: string | null }[];
+      question_options: {
+        id: string; letter: string; text: string | null; image_prompt: string | null; image_url: string | null;
+        image_zoom: number; image_offset_x: number; image_offset_y: number;
+      }[];
     }[];
     listening_scripts: { sequence: number; speaker_label: string | null; transcript: string }[];
   }[];
@@ -104,7 +107,7 @@ function EditorContent() {
       if (!a) return null;
       const { data: exs, error: exErr } = await supabase
         .from("exercises")
-        .select("id,number,kind,rubric,intro,statements,audio_url,voice_map,questions(id,number,stem,correct_letter,speaker_index,question_options(id,letter,text,image_prompt,image_url)),listening_scripts(sequence,speaker_label,transcript)")
+        .select("id,number,kind,rubric,intro,statements,audio_url,voice_map,questions(id,number,stem,correct_letter,speaker_index,question_options(id,letter,text,image_prompt,image_url,image_zoom,image_offset_x,image_offset_y)),listening_scripts(sequence,speaker_label,transcript)")
         .eq("assessment_id", id)
         .order("number");
       if (exErr) throw exErr;
@@ -242,6 +245,7 @@ function EditorContent() {
               <ExerciseBlock
                 key={ex.id}
                 ex={ex}
+                assessmentId={id}
                 showMarks={showMarks}
                 showTranscript={showTranscript}
                 onAudioGenerated={() => query.refetch()}
@@ -289,14 +293,163 @@ function EditorContent() {
   );
 }
 
+type ImageOption = FullPaper["exercises"][number]["questions"][number]["question_options"][number];
+
+const IMAGE_ZOOM_MIN = 1;
+const IMAGE_ZOOM_MAX = 2.25;
+const IMAGE_OFFSET_MAX = 0.4;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function ImageFramingEditor({
+  option,
+  imageUrl,
+  assessmentId,
+  locale,
+}: {
+  option: ImageOption;
+  imageUrl: string;
+  assessmentId: string;
+  locale: "af" | "en";
+}) {
+  const [zoom, setZoom] = useState(option.image_zoom ?? 1.32);
+  const [offsetX, setOffsetX] = useState(option.image_offset_x ?? 0);
+  const [offsetY, setOffsetY] = useState(option.image_offset_y ?? 0);
+  const [saving, setSaving] = useState(false);
+  const dragRef = useRef<{ pointerId: number; x: number; y: number; startX: number; startY: number } | null>(null);
+
+  async function saveFraming(nextZoom: number, nextX: number, nextY: number) {
+    setSaving(true);
+    const { error: optionError } = await supabase
+      .from("question_options")
+      .update({ image_zoom: nextZoom, image_offset_x: nextX, image_offset_y: nextY })
+      .eq("id", option.id);
+    if (!optionError) {
+      const { error: assessmentError } = await supabase
+        .from("assessments")
+        .update({ paper_pdf_path: null })
+        .eq("id", assessmentId);
+      if (assessmentError) toast.error(assessmentError.message);
+    } else {
+      toast.error(locale === "af" ? "Kon nie beeldposisie stoor nie" : "Could not save image position", {
+        description: optionError.message,
+      });
+    }
+    setSaving(false);
+  }
+
+  function changeZoom(delta: number) {
+    const next = clamp(Number((zoom + delta).toFixed(2)), IMAGE_ZOOM_MIN, IMAGE_ZOOM_MAX);
+    setZoom(next);
+    void saveFraming(next, offsetX, offsetY);
+  }
+
+  function reset() {
+    setZoom(1.32);
+    setOffsetX(0);
+    setOffsetY(0);
+    void saveFraming(1.32, 0, 0);
+  }
+
+  function startDrag(event: PointerEvent<HTMLDivElement>) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, startX: offsetX, startY: offsetY };
+  }
+
+  function moveDrag(event: PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const width = event.currentTarget.getBoundingClientRect().width;
+    if (!width) return;
+    setOffsetX(clamp(drag.startX + (event.clientX - drag.x) / width, -IMAGE_OFFSET_MAX, IMAGE_OFFSET_MAX));
+    setOffsetY(clamp(drag.startY + (event.clientY - drag.y) / width, -IMAGE_OFFSET_MAX, IMAGE_OFFSET_MAX));
+  }
+
+  function endDrag(event: PointerEvent<HTMLDivElement>) {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    void saveFraming(zoom, offsetX, offsetY);
+  }
+
+  return (
+    <div>
+      <div
+        className="relative aspect-square w-full touch-none cursor-grab overflow-hidden rounded border border-border bg-background active:cursor-grabbing"
+        onPointerDown={startDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        role="img"
+        aria-label={locale === "af" ? `Sleep om ${option.letter} te posisioneer` : `Drag to position ${option.letter}`}
+      >
+        <img
+          src={imageUrl}
+          alt={option.image_prompt ?? ""}
+          className="pointer-events-none h-full w-full select-none object-contain"
+          style={{ transform: `translate(${offsetX * 100}%, ${offsetY * 100}%) scale(${zoom})` }}
+          draggable={false}
+          loading="lazy"
+        />
+        <span className="pointer-events-none absolute bottom-1.5 right-1.5 inline-flex h-6 w-6 items-center justify-center rounded bg-background/80 text-muted-foreground shadow-sm">
+          <Move className="h-3.5 w-3.5" />
+        </span>
+      </div>
+      <div className="mt-1.5 flex items-center justify-center gap-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => changeZoom(-0.1)}
+          disabled={saving || zoom <= IMAGE_ZOOM_MIN}
+          title={locale === "af" ? "Zoem uit" : "Zoom out"}
+          aria-label={locale === "af" ? "Zoem uit" : "Zoom out"}
+        >
+          <Minus className="h-3.5 w-3.5" />
+        </Button>
+        <span className="w-12 text-center text-[10px] tabular-nums text-muted-foreground">{Math.round(zoom * 100)}%</span>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => changeZoom(0.1)}
+          disabled={saving || zoom >= IMAGE_ZOOM_MAX}
+          title={locale === "af" ? "Zoem in" : "Zoom in"}
+          aria-label={locale === "af" ? "Zoem in" : "Zoom in"}
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={reset}
+          disabled={saving || (zoom === 1.32 && offsetX === 0 && offsetY === 0)}
+          title={locale === "af" ? "Herstel posisie" : "Reset position"}
+          aria-label={locale === "af" ? "Herstel posisie" : "Reset position"}
+        >
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function ExerciseBlock({
   ex,
+  assessmentId,
   showMarks,
   showTranscript,
   onAudioGenerated,
   onAudioBusyChange,
 }: {
   ex: FullPaper["exercises"][number];
+  assessmentId: string;
   showMarks: boolean;
   showTranscript: boolean;
   onAudioGenerated?: () => void;
@@ -428,11 +581,11 @@ function ExerciseBlock({
                         {o.image_prompt && (
                           <div className="mt-2">
                             {url ? (
-                              <img
-                                src={url}
-                                alt={o.image_prompt}
-                                className="aspect-square w-full rounded border border-border object-cover"
-                                loading="lazy"
+                              <ImageFramingEditor
+                                option={o}
+                                imageUrl={url}
+                                assessmentId={assessmentId}
+                                locale={locale}
                               />
                             ) : (
                               <div className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded border border-dashed border-border bg-muted/30 p-2 text-center text-xs text-muted-foreground">

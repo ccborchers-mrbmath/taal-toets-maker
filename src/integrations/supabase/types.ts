@@ -372,24 +372,33 @@ export type Database = {
       question_options: {
         Row: {
           id: string
+          image_offset_x: number
+          image_offset_y: number
           image_prompt: string | null
           image_url: string | null
+          image_zoom: number
           letter: string
           question_id: string
           text: string | null
         }
         Insert: {
           id?: string
+          image_offset_x?: number
+          image_offset_y?: number
           image_prompt?: string | null
           image_url?: string | null
+          image_zoom?: number
           letter: string
           question_id: string
           text?: string | null
         }
         Update: {
           id?: string
+          image_offset_x?: number
+          image_offset_y?: number
           image_prompt?: string | null
           image_url?: string | null
+          image_zoom?: number
           letter?: string
           question_id?: string
           text?: string | null

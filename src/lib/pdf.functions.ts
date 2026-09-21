@@ -108,6 +108,9 @@ type FullPaper = {
         letter: string;
         text: string | null;
         image_prompt: string | null;
+        image_zoom: number;
+        image_offset_x: number;
+        image_offset_y: number;
       }[];
     }[];
     listening_scripts: { sequence: number; speaker_label: string | null; transcript: string; item_index: number | null; role_gloss: string | null; context: string | null }[];
@@ -524,7 +527,9 @@ async function renderPaper(ctx: Ctx, p: FullPaper, supabaseAdmin: SupabaseAdminL
               // original image in the PDF (without resampling it) and clip only the
               // excess whitespace so the subject fills more of the option box.
               const inset = 2;
-              const zoom = 1.32;
+               const zoom = Math.min(2.25, Math.max(1, o.image_zoom ?? 1.32));
+               const offsetX = Math.min(0.4, Math.max(-0.4, o.image_offset_x ?? 0));
+               const offsetY = Math.min(0.4, Math.max(-0.4, o.image_offset_y ?? 0));
               const innerW = colW - inset * 2;
               const innerH = imgH - inset * 2;
               const scale = Math.min(innerW / embedded.width, innerH / embedded.height) * zoom;
@@ -537,8 +542,8 @@ async function renderPaper(ctx: Ctx, p: FullPaper, supabaseAdmin: SupabaseAdminL
                 endPath(),
               );
               ctx.page.drawImage(embedded, {
-                x: x + (colW - w) / 2,
-                y: rowTop - imgH + (imgH - h) / 2,
+                 x: x + (colW - w) / 2 + offsetX * innerW,
+                 y: rowTop - imgH + (imgH - h) / 2 - offsetY * innerH,
                 width: w,
                 height: h,
               });
@@ -1120,7 +1125,7 @@ export const generatePaperPdf = createServerFn({ method: "POST" })
     const { data: exsRaw, error: exErr } = await supabase
       .from("exercises")
       .select(
-        "id,number,kind,rubric,statements,questions(id,number,stem,correct_letter,speaker_index,question_options(id,letter,text,image_prompt)),listening_scripts(sequence,speaker_label,transcript,item_index,role_gloss,context)",
+        "id,number,kind,rubric,statements,questions(id,number,stem,correct_letter,speaker_index,question_options(id,letter,text,image_prompt,image_zoom,image_offset_x,image_offset_y)),listening_scripts(sequence,speaker_label,transcript,item_index,role_gloss,context)",
       )
       .eq("assessment_id", data.assessment_id)
       .order("number");
