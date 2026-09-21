@@ -75,7 +75,7 @@ function EditorContent() {
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6 flex items-center gap-3">
         <Button variant="ghost" size="sm" asChild>
-          <Link to="/assessments/$id" params={{ id }}>
+          <Link to="/assessments/$id" params={{ id }} search={{ kicked: undefined }}>
             <ArrowLeft className="mr-1 h-4 w-4" /> {t("Terug na vraestel", "Back to paper")}
           </Link>
         </Button>

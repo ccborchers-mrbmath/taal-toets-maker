@@ -76,6 +76,7 @@ function DashboardContent() {
               <Link
                 to="/assessments/$id"
                 params={{ id: a.id }}
+                search={{ kicked: undefined }}
                 className="paper block rounded-lg p-5 transition-shadow hover:shadow-lg"
               >
                 <div className="flex items-start justify-between gap-2">
