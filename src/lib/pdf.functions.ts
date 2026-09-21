@@ -460,6 +460,8 @@ async function renderPaper(ctx: Ctx, p: FullPaper, supabaseAdmin: SupabaseAdminL
     const sortedQs = [...ex.questions].sort((a, b) => a.number - b.number);
     if (ex.kind === "matching" && statements?.length) {
       gap(ctx, 4);
+      drawText(ctx, "Lees nou stellings A–H.", { size: 10.5, font: ctx.bold });
+      gap(ctx, 4);
 
       // Cambridge-style matching layout: show A-H once in bordered rows,
       // followed by one answer line per speaker. The options stored against
@@ -496,7 +498,6 @@ async function renderPaper(ctx: Ctx, p: FullPaper, supabaseAdmin: SupabaseAdminL
       }
       gap(ctx, 13);
 
-      const answerBox = 18;
       const answerRowH = 36;
       for (let qi = 0; qi < sortedQs.length; qi++) {
         const q = sortedQs[qi];
@@ -516,24 +517,18 @@ async function renderPaper(ctx: Ctx, p: FullPaper, supabaseAdmin: SupabaseAdminL
           size: 10.5,
           font: ctx.font,
         });
-        const boxX = PAGE_W - MARGIN - 58;
+        // Cambridge's answer slot is just a dotted underline — no checkbox.
+        const marksW = ctx.font.widthOfTextAtSize("[1]", 9.5);
+        const lineEnd = PAGE_W - MARGIN - marksW - 14;
         ctx.page.drawLine({
           start: { x: MARGIN + 154, y: baseline - 2 },
-          end: { x: boxX - 10, y: baseline - 2 },
+          end: { x: lineEnd, y: baseline - 2 },
           thickness: 0.6,
           dashArray: [1, 2],
           color: rgb(0.25, 0.25, 0.28),
         });
-        ctx.page.drawRectangle({
-          x: boxX,
-          y: baseline - 5,
-          width: answerBox,
-          height: answerBox,
-          borderColor: rgb(0.15, 0.15, 0.2),
-          borderWidth: 0.9,
-        });
         ctx.page.drawText("[1]", {
-          x: PAGE_W - MARGIN - 22,
+          x: PAGE_W - MARGIN - marksW,
           y: baseline,
           size: 9.5,
           font: ctx.font,
