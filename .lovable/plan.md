@@ -23,6 +23,16 @@ export function buildNarrator(): ResolvedVoice {
 - ElevenLabs `speed` accepts 0.7–1.2, so 0.95 is valid.
 - Silences between segments stay as-is; only the narrator's speech rate drops ~5%.
 
+## Also fix (blocking build)
+
+Two TypeScript errors currently break the build — `Link`s to `/assessments/$id` are missing the now-required `search` param:
+
+- `src/routes/assessments.$id.audio-editor.tsx` (~line 78): back link to `/assessments/$id`
+- `src/routes/dashboard.tsx` (~line 76): assessment card link to `/assessments/$id`
+
+Fix: add `search={{}}` (or the route's expected search shape, per its `validateSearch`) to both links.
+
 ## Verification
 
+- Build passes with no type errors.
 - Regenerate (or restitch) audio for one exercise and confirm the narrator sentences are noticeably slower while dialogue is unchanged.
