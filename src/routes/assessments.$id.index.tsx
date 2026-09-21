@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, Check, Download, FileText, Headphones, ImageIcon, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { ArrowLeft, Check, Download, FileText, Headphones, ImageIcon, Loader2, Minus, Move, Plus, RefreshCw, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -66,7 +66,10 @@ type FullPaper = {
     questions: {
       id: string; number: number; stem: string; correct_letter: string;
       speaker_index: number | null;
-      question_options: { id: string; letter: string; text: string | null; image_prompt: string | null; image_url: string | null }[];
+      question_options: {
+        id: string; letter: string; text: string | null; image_prompt: string | null; image_url: string | null;
+        image_zoom: number; image_offset_x: number; image_offset_y: number;
+      }[];
     }[];
     listening_scripts: { sequence: number; speaker_label: string | null; transcript: string }[];
   }[];
@@ -104,7 +107,7 @@ function EditorContent() {
       if (!a) return null;
       const { data: exs, error: exErr } = await supabase
         .from("exercises")
-        .select("id,number,kind,rubric,intro,statements,audio_url,voice_map,questions(id,number,stem,correct_letter,speaker_index,question_options(id,letter,text,image_prompt,image_url)),listening_scripts(sequence,speaker_label,transcript)")
+        .select("id,number,kind,rubric,intro,statements,audio_url,voice_map,questions(id,number,stem,correct_letter,speaker_index,question_options(id,letter,text,image_prompt,image_url,image_zoom,image_offset_x,image_offset_y)),listening_scripts(sequence,speaker_label,transcript)")
         .eq("assessment_id", id)
         .order("number");
       if (exErr) throw exErr;
@@ -242,6 +245,7 @@ function EditorContent() {
               <ExerciseBlock
                 key={ex.id}
                 ex={ex}
+                assessmentId={id}
                 showMarks={showMarks}
                 showTranscript={showTranscript}
                 onAudioGenerated={() => query.refetch()}
@@ -291,12 +295,14 @@ function EditorContent() {
 
 function ExerciseBlock({
   ex,
+  assessmentId,
   showMarks,
   showTranscript,
   onAudioGenerated,
   onAudioBusyChange,
 }: {
   ex: FullPaper["exercises"][number];
+  assessmentId: string;
   showMarks: boolean;
   showTranscript: boolean;
   onAudioGenerated?: () => void;
@@ -428,11 +434,11 @@ function ExerciseBlock({
                         {o.image_prompt && (
                           <div className="mt-2">
                             {url ? (
-                              <img
-                                src={url}
-                                alt={o.image_prompt}
-                                className="aspect-square w-full rounded border border-border object-cover"
-                                loading="lazy"
+                              <ImageFramingEditor
+                                option={o}
+                                imageUrl={url}
+                                assessmentId={assessmentId}
+                                locale={locale}
                               />
                             ) : (
                               <div className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded border border-dashed border-border bg-muted/30 p-2 text-center text-xs text-muted-foreground">
