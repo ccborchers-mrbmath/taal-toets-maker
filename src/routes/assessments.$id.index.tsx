@@ -1109,16 +1109,18 @@ function CoverSettings({
         .from("paper-logos")
         .upload(path, buf, { upsert: true, contentType: file.type });
       if (upErr) throw upErr;
+      // Clearing the cached question-paper PDF forces the next export to
+      // rebuild the cover with the new logo.
       const { error: dbErr } = await supabase
         .from("assessments")
-        .update({ school_logo_path: path })
+        .update({ school_logo_path: path, paper_pdf_path: null })
         .eq("id", assessmentId);
       if (dbErr) throw dbErr;
       const { data: signed } = await supabase.storage.from("paper-logos").createSignedUrl(path, 3600);
       setPreviewUrl(signed?.signedUrl ?? null);
       toast.success(locale === "af" ? "Skoollogo opgelaai" : "School logo uploaded");
       if (paperCached) {
-        toast.message(locale === "af" ? "Druk ↻ langs Vraestel PDF om die voorblad te verfris." : "Press ↻ next to Question paper PDF to refresh the cover.");
+        toast.message(locale === "af" ? "Die vraestel-PDF word met die volgende aflaai herbou." : "The question paper PDF will rebuild on your next download.");
       }
       onChange();
     } catch (err) {
@@ -1132,7 +1134,7 @@ function CoverSettings({
     try {
       const { error } = await supabase
         .from("assessments")
-        .update({ date_of_assessment: date.trim() || null })
+        .update({ date_of_assessment: date.trim() || null, paper_pdf_path: null })
         .eq("id", assessmentId);
       if (error) throw error;
       setSavedDate(date);
