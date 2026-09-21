@@ -1134,7 +1134,7 @@ function CoverSettings({
     try {
       const { error } = await supabase
         .from("assessments")
-        .update({ date_of_assessment: date.trim() || null })
+        .update({ date_of_assessment: date.trim() || null, paper_pdf_path: null })
         .eq("id", assessmentId);
       if (error) throw error;
       setSavedDate(date);
