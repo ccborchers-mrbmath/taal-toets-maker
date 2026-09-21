@@ -28,8 +28,10 @@ Style requirements — follow exactly:
 - Absolutely NO colour of any kind. Every pixel must be black, white, or a neutral grey. No blue, red, green, yellow, brown, skin tone, wood tone, sky tone, or any tint whatsoever. Treat this as a grayscale-only output.
 - Only thin uniform black outlines plus, if needed, light diagonal or cross-hatch pencil shading. No solid fills of colour. No painted or coloured surfaces.
 - Plain empty white background. No desk, no books, no room, no scenery, no shadows on surfaces, no gradients, no photographic elements, no 3D rendering.
-- One clear simple subject, centred, framed in a square panel.
-- No text, letters, numbers, captions, labels, watermarks, logos, borders or frames.
+- One clear simple subject, centred on the empty white canvas.
+- Do NOT draw any surrounding square, rectangle, outline, panel, inset box, picture frame, mat, card edge, page edge, border, or background enclosure around the subject.
+- The subject must float directly on uninterrupted white space all the way to every image edge. Only the question paper layout will add an outer box later.
+- No text, letters, numbers, captions, labels, watermarks or logos.
 
 If in doubt, output less detail and less colour, not more. Coloured output is a failure.`,
         },
