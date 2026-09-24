@@ -220,7 +220,7 @@ async function downloadBytes(client: StorageClient, bucket: string, path: string
 function cropOptionImage(bytes: Uint8Array, zoomValue: number, offsetXValue: number, offsetYValue: number) {
   try {
     const source = PNG.sync.read(Buffer.from(bytes));
-    const size = Math.min(720, Math.max(360, Math.min(source.width, source.height)));
+    const size = Math.min(480, Math.max(360, Math.min(source.width, source.height)));
     const target = new PNG({ width: size, height: size, colorType: 6 });
     const zoom = Math.min(2.25, Math.max(1, zoomValue || 1.32));
     const offsetX = Math.min(0.4, Math.max(-0.4, offsetXValue || 0));
