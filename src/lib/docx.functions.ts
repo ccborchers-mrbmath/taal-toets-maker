@@ -219,7 +219,7 @@ async function downloadBytes(client: StorageClient, bucket: string, path: string
 
 function cropOptionImage(bytes: Uint8Array, zoomValue: number, offsetXValue: number, offsetYValue: number) {
   try {
-    const source = PNG.sync.read(bytes);
+    const source = PNG.sync.read(Buffer.from(bytes));
     const size = Math.min(720, Math.max(360, Math.min(source.width, source.height)));
     const target = new PNG({ width: size, height: size, colorType: 6 });
     const zoom = Math.min(2.25, Math.max(1, zoomValue || 1.32));
@@ -608,7 +608,7 @@ function makeDocument(paperData: FullPaper, children: FileChild[], kind: DocxKin
     creator: "Luister Lab",
     title: `${paperData.assessment.title} — ${kindLabel}`,
     description: kind === "paper" ? "Editable question paper" : "Editable listening transcript",
-    settings: { updateFields: true },
+    features: { updateFields: true },
     numbering: {
       config: ["paper-bullets", "paper-info-bullets"].map((reference) => ({
         reference,
