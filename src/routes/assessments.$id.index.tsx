@@ -12,6 +12,7 @@ import { useNoCreditsDialog } from "@/hooks/useNoCreditsDialog";
 import { generatePaper } from "@/lib/generate.functions";
 import { generateOptionImage } from "@/lib/images.functions";
 import { generatePaperPdf } from "@/lib/pdf.functions";
+import { generatePaperDocx } from "@/lib/docx.functions";
 import { generateExerciseAudio, refreshExerciseAudioUrl } from "@/lib/audio.functions";
 import { generateFullPaperAudio } from "@/lib/full-audio.functions";
 
@@ -265,8 +266,10 @@ function EditorContent() {
 
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <PdfButton id={id} kind="paper" label={locale === "af" ? "Vraestel PDF" : "Question paper PDF"} cached={!!assessment.paper_pdf_path} onChange={() => query.refetch()} />
+                <DocxButton id={id} kind="paper" label={locale === "af" ? "Vraestel Word" : "Question paper Word"} />
                 <PdfButton id={id} kind="mark_scheme" label={locale === "af" ? "Memorandum PDF" : "Mark scheme PDF"} cached={!!assessment.mark_scheme_pdf_path} onChange={() => query.refetch()} />
                 <PdfButton id={id} kind="transcript" label={locale === "af" ? "Transkripsie PDF" : "Transcript PDF"} cached={!!assessment.transcript_pdf_path} onChange={() => query.refetch()} />
+                <DocxButton id={id} kind="transcript" label={locale === "af" ? "Transkripsie Word" : "Transcript Word"} />
                 <FullAudioButton
                   id={id}
                   cached={!!assessment.full_audio_path}
@@ -723,6 +726,32 @@ function PdfButton({
         </Button>
       )}
     </div>
+  );
+}
+
+function DocxButton({ id, kind, label }: { id: string; kind: "paper" | "transcript"; label: string }) {
+  const { locale } = useT();
+  const [busy, setBusy] = useState(false);
+
+  async function run() {
+    setBusy(true);
+    try {
+      const result = await generatePaperDocx({ data: { assessment_id: id, kind } });
+      triggerDownload(result.download_url, result.filename);
+    } catch (error) {
+      toast.error(locale === "af" ? "Word-dokument misluk" : "Word document failed", {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Button variant="outline" size="sm" onClick={run} disabled={busy}>
+      {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <FileText className="mr-1.5 h-3.5 w-3.5" />}
+      {label}
+    </Button>
   );
 }
 
